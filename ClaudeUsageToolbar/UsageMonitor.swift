@@ -66,7 +66,10 @@ final class UsageMonitor {
                 case .success(let resp):
                     let session = Int((resp.fiveHour?.utilization ?? 0))
                     let weekly = Int((resp.sevenDay?.utilization ?? 0))
-                    NSLog("[ClaudeUsageToolbar] fetched session=%d%% weekly=%d%%", session, weekly)
+                    NSLog("[ClaudeUsageToolbar] fetched session=%d%% weekly=%d%% sessionResets=%@ weeklyResets=%@",
+                          session, weekly,
+                          resp.fiveHour?.resetsAt.map { "\($0)" } ?? "nil",
+                          resp.sevenDay?.resetsAt.map { "\($0)" } ?? "nil")
                     let state = UsageState(kind: .ok(
                         sessionPercent: session,
                         weeklyPercent: weekly,
@@ -81,6 +84,7 @@ final class UsageMonitor {
                     self.onUpdate(UsageState(kind: .unauthenticated))
                 case .rateLimited:
                     NSLog("[ClaudeUsageToolbar] fetched: rate-limited, keeping last state")
+                    NSLog("[ClaudeUsageToolbar] rate-limited result: %@", String(describing: result))
                 case .failure(let err):
                     NSLog("[ClaudeUsageToolbar] fetch error: %@", err)
                     self.onUpdate(UsageState(kind: .error(err)))

@@ -22,7 +22,7 @@ There are no tests, no linter config, no package manager — just `xcodebuild`. 
 A `LSUIElement=YES` menubar-only app with no SwiftUI scenes. The `App` body is `Settings { EmptyView() }` purely to satisfy the protocol; the real entry point is `AppDelegate.applicationDidFinishLaunching`, which:
 1. Installs the launchd agent (`LaunchAgentInstaller`).
 2. Checks if `com.anthropic.claudefordesktop` is running (`ClaudeAppLifecycle`); terminates immediately if not.
-3. Creates `NSStatusItem` directly (not `MenuBarExtra` — we need a click-action, not a popover) and wires it to a fetch loop driven by `UsageMonitor`.
+3. Creates `NSStatusItem` directly (not `MenuBarExtra` — we need a click-action, not a popover) and wires it to a fetch loop driven by `UsageMonitor`. Click opens Claude usage; **Option+click** shows a dropdown menu with session/weekly usage, reset countdowns, and Restart/Quit actions.
 4. Subscribes to `NSWorkspace.didWakeNotification` for sleep/wake refresh and `didTerminateApplicationNotification` to self-terminate when Claude.app quits.
 
 ### Data source
@@ -31,9 +31,13 @@ Polls the **undocumented** OAuth endpoint `https://api.anthropic.com/api/oauth/u
 
 **Important gotcha**: the API returns percentages as **0–100 doubles**, not 0–1 utilization fractions. Don't multiply by 100 in `UsageMonitor`. `UsageAPI.extractBucket` accepts several key aliases (`five_hour`/`fiveHour`/`session`/...) defensively — if the response shape shifts, add to the alias list rather than rewriting.
 
+**API response shape varies**: sometimes buckets are nested objects with `resets_at` dates, sometimes they're plain doubles (no reset date). The parser handles both, but reset countdowns will only display when the object form is returned.
+
 ### Adaptive polling & activity
 
 `ActivityWatcher` opens an `FSEventStream` on `~/.claude/projects/` and stamps `lastActivityAt` on any JSONL mtime change. `UsageMonitor.currentInterval()` returns 15s / 60s / 300s depending on time-since-activity. FSEvents also trigger an immediate (debounced 5s) fetch and reschedule the timer — that's the "active again" path. 429 responses are surfaced as `.rateLimited` and *do not* update display state.
+
+**429 retry**: the API intermittently returns 429 on first request (possibly Cloudflare edge caching). `UsageAPI.performFetch` retries once with a fresh `URLSession` after a 2s delay. If the retry also fails, it falls through as `.rateLimited`.
 
 ### Lifecycle (start with Claude / quit with Claude)
 
@@ -44,6 +48,10 @@ Polls the **undocumented** OAuth endpoint `https://api.anthropic.com/api/oauth/u
 ### Weekly alert
 
 `UsageMonitor.maybeFireWeeklyAlert` fires `WeeklyAlert.show` only on the rising edge (`weekly >= 90 && lastWeeklyPercent < 90`). Per-week dedup uses `UserDefaults` keyed by the ISO-formatted `resets_at` value — the same reset-window string won't re-alert even after restarts.
+
+### Menu bar display
+
+`MenuBarLabel` renders the status item text. The button background is colored via its layer (not via `.backgroundColor` on the attributed string — that only covers glyphs, not the full button). At 100% session usage, the label switches from percentage to a countdown (`H:MM`) until the session resets. `isHot` controls whether the layer gets the red background color (`hotBackground`). Don't use `sizeToFit()` removal or `.backgroundColor` on attributed strings — those were tried and don't work correctly with `NSStatusBarButton`.
 
 ## First-run UX caveats
 

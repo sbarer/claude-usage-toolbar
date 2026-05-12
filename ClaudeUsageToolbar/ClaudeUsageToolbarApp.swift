@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lifecycle: ClaudeAppLifecycle!
     private var activityWatcher: ActivityWatcher!
     private var wakeObserver: NSObjectProtocol?
+    private var lastState: UsageState?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LaunchAgentInstaller.installIfNeeded()
@@ -62,7 +63,68 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleClick(_ sender: Any?) {
-        openClaudeUsage()
+        let optionHeld = NSEvent.modifierFlags.contains(.option)
+        if optionHeld {
+            showMenu()
+        } else {
+            openClaudeUsage()
+        }
+    }
+
+    private func showMenu() {
+        let menu = NSMenu()
+
+        if case .ok(let session, let weekly, let weeklyResetsAt, let sessionResetsAt) = lastState?.kind {
+            let sessionItem = NSMenuItem(title: "Session: \(session)%", action: nil, keyEquivalent: "")
+            sessionItem.isEnabled = false
+            menu.addItem(sessionItem)
+
+            if let resetsAt = sessionResetsAt {
+                let remaining = resetsAt.timeIntervalSinceNow
+                if remaining > 0 {
+                    let item = NSMenuItem(title: "  Resets in \(MenuBarLabel.formatCountdownLong(remaining))", action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    menu.addItem(item)
+                }
+            }
+
+            menu.addItem(.separator())
+
+            let weeklyItem = NSMenuItem(title: "Weekly: \(weekly)%", action: nil, keyEquivalent: "")
+            weeklyItem.isEnabled = false
+            menu.addItem(weeklyItem)
+
+            if let resetsAt = weeklyResetsAt {
+                let remaining = resetsAt.timeIntervalSinceNow
+                if remaining > 0 {
+                    let item = NSMenuItem(title: "  Resets in \(MenuBarLabel.formatCountdownLong(remaining))", action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    menu.addItem(item)
+                }
+            }
+
+            menu.addItem(.separator())
+        }
+
+        menu.addItem(NSMenuItem(title: "Restart", action: #selector(restartApp), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: ""))
+
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func restartApp() {
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = ["-n", bundlePath]
+        try? task.run()
+        NSApp.terminate(nil)
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 
     private func renderPlaceholder() {
@@ -76,8 +138,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func render(_ state: UsageState) {
         guard let button = statusItem.button else { return }
+        lastState = state
         button.attributedTitle = MenuBarLabel.attributedTitle(for: state)
         button.toolTip = state.tooltip
+        button.alignment = .center
+        button.layer?.cornerRadius = 10
+
+        button.wantsLayer = true
+        if MenuBarLabel.isHot(state) {
+            button.layer?.backgroundColor = nil
+        } else {
+            button.layer?.backgroundColor = MenuBarLabel.hotBackground.cgColor
+        }
+        button.sizeToFit()
     }
 }
 

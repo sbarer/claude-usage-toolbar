@@ -20,12 +20,16 @@ enum UsageFetchResult {
 final class UsageAPI {
     private let url = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private let betaHeader = "oauth-2025-04-20"
-    private let session: URLSession = {
+    private static let maxRetries = 2
+
+    private static func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 20
         cfg.waitsForConnectivity = true
         return URLSession(configuration: cfg)
-    }()
+    }
+
+    private var session = makeSession()
 
     func fetch(completion: @escaping (UsageFetchResult) -> Void) {
         let token: String
@@ -37,6 +41,10 @@ final class UsageAPI {
             completion(.failure("keychain: \(error)")); return
         }
 
+        performFetch(token: token, attempt: 1, completion: completion)
+    }
+
+    private func performFetch(token: String, attempt: Int, completion: @escaping (UsageFetchResult) -> Void) {
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -44,7 +52,7 @@ final class UsageAPI {
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("claude-usage-toolbar/1.0", forHTTPHeaderField: "User-Agent")
 
-        session.dataTask(with: req) { data, response, error in
+        session.dataTask(with: req) { [weak self] data, response, error in
             if let error {
                 completion(.failure(error.localizedDescription)); return
             }
@@ -55,6 +63,16 @@ final class UsageAPI {
                 completion(.unauthenticated); return
             }
             if http.statusCode == 429 {
+                if attempt < Self.maxRetries {
+                    NSLog("[ClaudeUsageToolbar] 429 on attempt %d, retrying with fresh session…", attempt)
+                    self?.session = Self.makeSession()
+                    let delay = Double(attempt) * 2.0
+                    DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
+                        self?.performFetch(token: token, attempt: attempt + 1, completion: completion)
+                    }
+                    return
+                }
+                NSLog("[ClaudeUsageToolbar] 429 after %d attempts, giving up", attempt)
                 completion(.rateLimited); return
             }
             if !(200...299).contains(http.statusCode) {

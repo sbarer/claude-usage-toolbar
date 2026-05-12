@@ -11,27 +11,68 @@ enum MenuBarLabel {
             return plain("!")
         case .error:
             return plain("⚠")
-        case .ok(let session, _, _, _):
-            let text = " \(session)% "
+        case .ok(let session, _, _, let sessionResetsAt):
+            if session >= 100, let resetsAt = sessionResetsAt {
+                let remaining = resetsAt.timeIntervalSinceNow
+                if remaining > 0 {
+                    return hotPill(" \(formatCountdown(remaining)) ")
+                }
+            }
             if session >= hotThreshold {
-                return hotPill(text)
+                return hotPill(" \(session)% ")
             } else {
-                return plain(text)
+                return plain(" \(session)% ")
             }
         }
     }
 
+    private static func formatCountdown(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        if h > 0 {
+            return String(format: "%d:%02d", h, m)
+        }
+        return String(format: "0:%02d", m)
+    }
+
+    static func isHot(_ state: UsageState) -> Bool {
+        if case .ok(let session, _, _, _) = state.kind, session >= hotThreshold {
+            return true
+        }
+        return false
+    }
+
+    static func formatCountdownLong(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        if h > 0 {
+            return String(format: "%d:%02d", h, m)
+        }
+        return String(format: "0:%02d", m)
+    }
+
+    private static let centeredStyle: NSParagraphStyle = {
+        let p = NSMutableParagraphStyle()
+        p.alignment = .center
+        return p
+    }()
+
     private static func plain(_ s: String) -> NSAttributedString {
         NSAttributedString(string: s, attributes: [
-            .font: NSFont.menuBarFont(ofSize: 0)
+            .font: NSFont.menuBarFont(ofSize: 0),
+            .paragraphStyle: centeredStyle
         ])
     }
+
+    static let hotBackground = NSColor(red: 0.85, green: 0.24, blue: 0.12, alpha: 1)
 
     private static func hotPill(_ s: String) -> NSAttributedString {
         NSAttributedString(string: s, attributes: [
             .font: NSFont.menuBarFont(ofSize: 0),
-            .backgroundColor: NSColor.systemRed,
-            .foregroundColor: NSColor.white
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: centeredStyle
         ])
     }
 }
