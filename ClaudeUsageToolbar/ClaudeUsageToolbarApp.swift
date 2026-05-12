@@ -146,9 +146,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         button.wantsLayer = true
         if MenuBarLabel.isHot(state) {
-            button.layer?.backgroundColor = nil
-        } else {
             button.layer?.backgroundColor = MenuBarLabel.hotBackground.cgColor
+        } else {
+            button.layer?.backgroundColor = nil
         }
         button.sizeToFit()
     }

@@ -71,7 +71,7 @@ enum MenuBarLabel {
     private static func hotPill(_ s: String) -> NSAttributedString {
         NSAttributedString(string: s, attributes: [
             .font: NSFont.menuBarFont(ofSize: 0),
-            .foregroundColor: NSColor.white,
+            .foregroundColor: NSColor.black,
             .paragraphStyle: centeredStyle
         ])
     }
