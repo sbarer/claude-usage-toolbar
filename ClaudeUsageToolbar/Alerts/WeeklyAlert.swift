@@ -16,14 +16,7 @@ enum WeeklyAlert {
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertSecondButtonReturn {
-            if let url = URL(string: "claude://usage") {
-                NSWorkspace.shared.open(url)
-            }
-            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop") {
-                let cfg = NSWorkspace.OpenConfiguration()
-                cfg.activates = true
-                NSWorkspace.shared.openApplication(at: appURL, configuration: cfg, completionHandler: nil)
-            }
+            ClaudeUsageOpener.open()
         }
     }
 

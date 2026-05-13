@@ -7,31 +7,47 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1A2000000000000000000101 /* ClaudeUsageToolbarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000101 /* ClaudeUsageToolbarApp.swift */; };
-		1A2000000000000000000102 /* UsageMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000102 /* UsageMonitor.swift */; };
-		1A2000000000000000000103 /* UsageAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000103 /* UsageAPI.swift */; };
-		1A2000000000000000000104 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000104 /* KeychainTokenStore.swift */; };
-		1A2000000000000000000105 /* ActivityWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000105 /* ActivityWatcher.swift */; };
-		1A2000000000000000000106 /* ClaudeAppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000106 /* ClaudeAppLifecycle.swift */; };
-		1A2000000000000000000107 /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000107 /* MenuBarLabel.swift */; };
-		1A2000000000000000000108 /* WeeklyAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000108 /* WeeklyAlert.swift */; };
-		1A2000000000000000000109 /* LaunchAgentInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000109 /* LaunchAgentInstaller.swift */; };
 		1A2000000000000000000201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000201 /* Assets.xcassets */; };
+		58FBBFC22FB49670002504F1 /* ClaudeUsageToolbarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC12FB49670002504F1 /* ClaudeUsageToolbarApp.swift */; };
+		58FBBFC42FB49698002504F1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC32FB49698002504F1 /* AppDelegate.swift */; };
+		58FBBFC62FB49699002504F1 /* ClaudeUsageOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC52FB49699002504F1 /* ClaudeUsageOpener.swift */; };
+		58FBBFC82FB4969A002504F1 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC72FB4969A002504F1 /* MenuBarController.swift */; };
+		58FBBFCA2FB4969B002504F1 /* MenuBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC92FB4969B002504F1 /* MenuBarMenuBuilder.swift */; };
+		58FBBFCC2FB4969C002504F1 /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFCB2FB4969C002504F1 /* MenuBarLabel.swift */; };
+		58FBBFCE2FB496D7002504F1 /* UsageState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFCD2FB496D7002504F1 /* UsageState.swift */; };
+		58FBBFD02FB496D8002504F1 /* UsageMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFCF2FB496D8002504F1 /* UsageMonitor.swift */; };
+		58FBBFD22FB496D9002504F1 /* UsageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFD12FB496D9002504F1 /* UsageResponse.swift */; };
+		58FBBFD42FB496DA002504F1 /* UsageFetchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFD32FB496DA002504F1 /* UsageFetchResult.swift */; };
+		58FBBFD62FB496DB002504F1 /* UsageAPIDebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFD52FB496DB002504F1 /* UsageAPIDebugLog.swift */; };
+		58FBBFD82FB496DC002504F1 /* UsageAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFD72FB496DC002504F1 /* UsageAPI.swift */; };
+		58FBBFDA2FB49709002504F1 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFD92FB49709002504F1 /* KeychainTokenStore.swift */; };
+		58FBBFDC2FB49709002504F1 /* ActivityWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFDB2FB49709002504F1 /* ActivityWatcher.swift */; };
+		58FBBFDE2FB4970B002504F1 /* ClaudeAppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFDD2FB4970B002504F1 /* ClaudeAppLifecycle.swift */; };
+		58FBBFE02FB4970C002504F1 /* LaunchAgentInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFDF2FB4970C002504F1 /* LaunchAgentInstaller.swift */; };
+		58FBBFE22FB4970D002504F1 /* WeeklyAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFE12FB4970D002504F1 /* WeeklyAlert.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1A1000000000000000000001 /* ClaudeUsageToolbar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeUsageToolbar.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		1A1000000000000000000101 /* ClaudeUsageToolbarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageToolbarApp.swift; sourceTree = "<group>"; };
-		1A1000000000000000000102 /* UsageMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMonitor.swift; sourceTree = "<group>"; };
-		1A1000000000000000000103 /* UsageAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageAPI.swift; sourceTree = "<group>"; };
-		1A1000000000000000000104 /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
-		1A1000000000000000000105 /* ActivityWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityWatcher.swift; sourceTree = "<group>"; };
-		1A1000000000000000000106 /* ClaudeAppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAppLifecycle.swift; sourceTree = "<group>"; };
-		1A1000000000000000000107 /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
-		1A1000000000000000000108 /* WeeklyAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyAlert.swift; sourceTree = "<group>"; };
-		1A1000000000000000000109 /* LaunchAgentInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAgentInstaller.swift; sourceTree = "<group>"; };
 		1A1000000000000000000201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A1000000000000000000202 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		58FBBFC12FB49670002504F1 /* ClaudeUsageToolbarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageToolbarApp.swift; sourceTree = "<group>"; };
+		58FBBFC32FB49698002504F1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		58FBBFC52FB49699002504F1 /* ClaudeUsageOpener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageOpener.swift; sourceTree = "<group>"; };
+		58FBBFC72FB4969A002504F1 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		58FBBFC92FB4969B002504F1 /* MenuBarMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenuBuilder.swift; sourceTree = "<group>"; };
+		58FBBFCB2FB4969C002504F1 /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
+		58FBBFCD2FB496D7002504F1 /* UsageState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageState.swift; sourceTree = "<group>"; };
+		58FBBFCF2FB496D8002504F1 /* UsageMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMonitor.swift; sourceTree = "<group>"; };
+		58FBBFD12FB496D9002504F1 /* UsageResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageResponse.swift; sourceTree = "<group>"; };
+		58FBBFD32FB496DA002504F1 /* UsageFetchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageFetchResult.swift; sourceTree = "<group>"; };
+		58FBBFD52FB496DB002504F1 /* UsageAPIDebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageAPIDebugLog.swift; sourceTree = "<group>"; };
+		58FBBFD72FB496DC002504F1 /* UsageAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageAPI.swift; sourceTree = "<group>"; };
+		58FBBFD92FB49709002504F1 /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		58FBBFDB2FB49709002504F1 /* ActivityWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityWatcher.swift; sourceTree = "<group>"; };
+		58FBBFDD2FB4970B002504F1 /* ClaudeAppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAppLifecycle.swift; sourceTree = "<group>"; };
+		58FBBFDF2FB4970C002504F1 /* LaunchAgentInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAgentInstaller.swift; sourceTree = "<group>"; };
+		58FBBFE12FB4970D002504F1 /* WeeklyAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyAlert.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,17 +72,14 @@
 		1A4000000000000000000002 /* ClaudeUsageToolbar */ = {
 			isa = PBXGroup;
 			children = (
-				1A1000000000000000000101 /* ClaudeUsageToolbarApp.swift */,
-				1A1000000000000000000102 /* UsageMonitor.swift */,
-				1A1000000000000000000103 /* UsageAPI.swift */,
-				1A1000000000000000000104 /* KeychainTokenStore.swift */,
-				1A1000000000000000000105 /* ActivityWatcher.swift */,
-				1A1000000000000000000106 /* ClaudeAppLifecycle.swift */,
-				1A1000000000000000000107 /* MenuBarLabel.swift */,
-				1A1000000000000000000108 /* WeeklyAlert.swift */,
-				1A1000000000000000000109 /* LaunchAgentInstaller.swift */,
 				1A1000000000000000000201 /* Assets.xcassets */,
 				1A1000000000000000000202 /* Info.plist */,
+				58FBBFBB2FB49472002504F1 /* App */,
+				58FBBFBC2FB49473002504F1 /* MenuBar */,
+				58FBBFBD2FB49473002504F1 /* Usage */,
+				58FBBFBE2FB49474002504F1 /* Security */,
+				58FBBFBF2FB49474002504F1 /* System */,
+				58FBBFC02FB49475002504F1 /* Alerts */,
 			);
 			path = ClaudeUsageToolbar;
 			sourceTree = "<group>";
@@ -77,6 +90,65 @@
 				1A1000000000000000000001 /* ClaudeUsageToolbar.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		58FBBFBB2FB49472002504F1 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFC12FB49670002504F1 /* ClaudeUsageToolbarApp.swift */,
+				58FBBFC32FB49698002504F1 /* AppDelegate.swift */,
+				58FBBFC52FB49699002504F1 /* ClaudeUsageOpener.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		58FBBFBC2FB49473002504F1 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFC72FB4969A002504F1 /* MenuBarController.swift */,
+				58FBBFC92FB4969B002504F1 /* MenuBarMenuBuilder.swift */,
+				58FBBFCB2FB4969C002504F1 /* MenuBarLabel.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		58FBBFBD2FB49473002504F1 /* Usage */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFCD2FB496D7002504F1 /* UsageState.swift */,
+				58FBBFCF2FB496D8002504F1 /* UsageMonitor.swift */,
+				58FBBFD12FB496D9002504F1 /* UsageResponse.swift */,
+				58FBBFD32FB496DA002504F1 /* UsageFetchResult.swift */,
+				58FBBFD52FB496DB002504F1 /* UsageAPIDebugLog.swift */,
+				58FBBFD72FB496DC002504F1 /* UsageAPI.swift */,
+			);
+			path = Usage;
+			sourceTree = "<group>";
+		};
+		58FBBFBE2FB49474002504F1 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFD92FB49709002504F1 /* KeychainTokenStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		58FBBFBF2FB49474002504F1 /* System */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFDB2FB49709002504F1 /* ActivityWatcher.swift */,
+				58FBBFDD2FB4970B002504F1 /* ClaudeAppLifecycle.swift */,
+				58FBBFDF2FB4970C002504F1 /* LaunchAgentInstaller.swift */,
+			);
+			path = System;
+			sourceTree = "<group>";
+		};
+		58FBBFC02FB49475002504F1 /* Alerts */ = {
+			isa = PBXGroup;
+			children = (
+				58FBBFE12FB4970D002504F1 /* WeeklyAlert.swift */,
+			);
+			path = Alerts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -148,15 +220,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A2000000000000000000101 /* ClaudeUsageToolbarApp.swift in Sources */,
-				1A2000000000000000000102 /* UsageMonitor.swift in Sources */,
-				1A2000000000000000000103 /* UsageAPI.swift in Sources */,
-				1A2000000000000000000104 /* KeychainTokenStore.swift in Sources */,
-				1A2000000000000000000105 /* ActivityWatcher.swift in Sources */,
-				1A2000000000000000000106 /* ClaudeAppLifecycle.swift in Sources */,
-				1A2000000000000000000107 /* MenuBarLabel.swift in Sources */,
-				1A2000000000000000000108 /* WeeklyAlert.swift in Sources */,
-				1A2000000000000000000109 /* LaunchAgentInstaller.swift in Sources */,
+				58FBBFC82FB4969A002504F1 /* MenuBarController.swift in Sources */,
+				58FBBFCE2FB496D7002504F1 /* UsageState.swift in Sources */,
+				58FBBFCA2FB4969B002504F1 /* MenuBarMenuBuilder.swift in Sources */,
+				58FBBFC42FB49698002504F1 /* AppDelegate.swift in Sources */,
+				58FBBFDC2FB49709002504F1 /* ActivityWatcher.swift in Sources */,
+				58FBBFD82FB496DC002504F1 /* UsageAPI.swift in Sources */,
+				58FBBFD62FB496DB002504F1 /* UsageAPIDebugLog.swift in Sources */,
+				58FBBFDA2FB49709002504F1 /* KeychainTokenStore.swift in Sources */,
+				58FBBFE02FB4970C002504F1 /* LaunchAgentInstaller.swift in Sources */,
+				58FBBFCC2FB4969C002504F1 /* MenuBarLabel.swift in Sources */,
+				58FBBFDE2FB4970B002504F1 /* ClaudeAppLifecycle.swift in Sources */,
+				58FBBFD02FB496D8002504F1 /* UsageMonitor.swift in Sources */,
+				58FBBFC62FB49699002504F1 /* ClaudeUsageOpener.swift in Sources */,
+				58FBBFD42FB496DA002504F1 /* UsageFetchResult.swift in Sources */,
+				58FBBFD22FB496D9002504F1 /* UsageResponse.swift in Sources */,
+				58FBBFC22FB49670002504F1 /* ClaudeUsageToolbarApp.swift in Sources */,
+				58FBBFE22FB4970D002504F1 /* WeeklyAlert.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
