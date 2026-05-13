@@ -11,16 +11,63 @@ struct UsageResponse {
 }
 
 enum UsageFetchResult {
-    case success(UsageResponse)
-    case unauthenticated
-    case rateLimited
-    case failure(String)
+    case success(UsageResponse, attempts: Int)
+    case unauthenticated(attempts: Int)
+    case rateLimited(attempts: Int)
+    case failure(String, attempts: Int)
+}
+
+enum UsageAPIDebugLog {
+    private static let maxEntries = 5
+    private static let queue = DispatchQueue(label: "claude-usage-toolbar.api-debug-log")
+    private static var entries: [String] = []
+
+    static var fileURL: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return support
+            .appendingPathComponent("ClaudeUsageToolbar", isDirectory: true)
+            .appendingPathComponent("recent-usage-calls.txt")
+    }
+
+    static func record(_ lines: [String]) {
+        let entry = lines.joined(separator: "\n")
+        queue.async {
+            entries.append(entry)
+            if entries.count > maxEntries {
+                entries.removeFirst(entries.count - maxEntries)
+            }
+            writeEntries()
+        }
+    }
+
+    static func ensureFileExists() -> URL {
+        queue.sync {
+            writeEntries()
+            return fileURL
+        }
+    }
+
+    private static func writeEntries() {
+        let url = fileURL
+        let directory = url.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let body: String
+        if entries.isEmpty {
+            body = "No usage API calls recorded yet.\n"
+        } else {
+            body = entries.enumerated()
+                .map { index, entry in "Call \(index + 1)\n\(entry)" }
+                .joined(separator: "\n\n---\n\n") + "\n"
+        }
+        try? body.write(to: url, atomically: true, encoding: .utf8)
+    }
 }
 
 final class UsageAPI {
     private let url = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private let betaHeader = "oauth-2025-04-20"
-    private static let maxRetries = 2
 
     private static func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.ephemeral
@@ -31,20 +78,40 @@ final class UsageAPI {
 
     private var session = makeSession()
 
-    func fetch(completion: @escaping (UsageFetchResult) -> Void) {
+    func fetch(reason: String, completion: @escaping (UsageFetchResult) -> Void) {
         let token: String
         do {
             token = try KeychainTokenStore.readAccessToken()
         } catch KeychainTokenStore.Error.notFound {
-            completion(.unauthenticated); return
+            UsageAPIDebugLog.record([
+                "Time: \(Self.debugTimestamp())",
+                "Reason: \(reason)",
+                "Request: not sent",
+                "Result: unauthenticated",
+                "Detail: access token not found in keychain",
+                "Debug Info:",
+                "  Keychain lookup failed before any HTTP request was created.",
+                "  Token value: not logged"
+            ])
+            completion(.unauthenticated(attempts: 0)); return
         } catch {
-            completion(.failure("keychain: \(error)")); return
+            UsageAPIDebugLog.record([
+                "Time: \(Self.debugTimestamp())",
+                "Reason: \(reason)",
+                "Request: not sent",
+                "Result: failure",
+                "Detail: keychain: \(error)",
+                "Debug Info:",
+                "  Keychain error type: \(type(of: error))",
+                "  Token value: not logged"
+            ])
+            completion(.failure("keychain: \(error)", attempts: 0)); return
         }
 
-        performFetch(token: token, attempt: 1, completion: completion)
+        performFetch(token: token, reason: reason, attempt: 1, completion: completion)
     }
 
-    private func performFetch(token: String, attempt: Int, completion: @escaping (UsageFetchResult) -> Void) {
+    private func performFetch(token: String, reason: String, attempt: Int, completion: @escaping (UsageFetchResult) -> Void) {
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -52,41 +119,156 @@ final class UsageAPI {
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("claude-usage-toolbar/1.0", forHTTPHeaderField: "User-Agent")
 
-        session.dataTask(with: req) { [weak self] data, response, error in
+        session.dataTask(with: req) { data, response, error in
             if let error {
-                completion(.failure(error.localizedDescription)); return
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: response, data: data, error: error, result: "failure")
+                completion(.failure(error.localizedDescription, attempts: attempt)); return
             }
             guard let http = response as? HTTPURLResponse, let data else {
-                completion(.failure("no response")); return
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: response, data: data, result: "failure", detail: "no response")
+                completion(.failure("no response", attempts: attempt)); return
             }
             if http.statusCode == 401 || http.statusCode == 403 {
-                completion(.unauthenticated); return
+                KeychainTokenStore.invalidateCachedAccessToken()
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "unauthenticated")
+                completion(.unauthenticated(attempts: attempt)); return
             }
             if http.statusCode == 429 {
-                if attempt < Self.maxRetries {
-                    NSLog("[ClaudeUsageToolbar] 429 on attempt %d, retrying with fresh session…", attempt)
-                    self?.session = Self.makeSession()
-                    let delay = Double(attempt) * 2.0
-                    DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
-                        self?.performFetch(token: token, attempt: attempt + 1, completion: completion)
-                    }
-                    return
-                }
-                NSLog("[ClaudeUsageToolbar] 429 after %d attempts, giving up", attempt)
-                completion(.rateLimited); return
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "rate limited")
+                completion(.rateLimited(attempts: attempt)); return
             }
             if !(200...299).contains(http.statusCode) {
                 let body = String(data: data, encoding: .utf8) ?? ""
-                completion(.failure("http \(http.statusCode): \(body.prefix(200))"))
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "failure", detail: body)
+                completion(.failure("http \(http.statusCode): \(body.prefix(200))", attempts: attempt))
                 return
             }
             do {
                 let parsed = try Self.parse(data)
-                completion(.success(parsed))
+                Self.recordHTTPRequest(
+                    reason: reason,
+                    attempt: attempt,
+                    statusCode: http.statusCode,
+                    result: "success",
+                    detail: "fiveHour=\(Self.debugBucket(parsed.fiveHour)), sevenDay=\(Self.debugBucket(parsed.sevenDay))"
+                )
+                completion(.success(parsed, attempts: attempt))
             } catch {
-                completion(.failure("parse: \(error)"))
+                let body = String(data: data, encoding: .utf8) ?? ""
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, error: error, result: "parse failure", detail: body)
+                completion(.failure("parse: \(error)", attempts: attempt))
             }
         }.resume()
+    }
+
+    private static func recordHTTPRequest(reason: String, attempt: Int, statusCode: Int? = nil, result: String, detail: String? = nil) {
+        var lines = [
+            "Time: \(debugTimestamp())",
+            "Reason: \(reason)",
+            "Request: GET https://api.anthropic.com/api/oauth/usage",
+            "Attempt: \(attempt)"
+        ]
+        if let statusCode {
+            lines.append("Status: \(statusCode)")
+        }
+        lines.append("Result: \(result)")
+        if let detail, !detail.isEmpty {
+            lines.append("Detail: \(detail)")
+        }
+        UsageAPIDebugLog.record(lines)
+    }
+
+    private static func recordHTTPRequest(
+        reason: String,
+        request: URLRequest,
+        attempt: Int,
+        response: URLResponse?,
+        data: Data?,
+        error: Error? = nil,
+        result: String,
+        detail: String? = nil
+    ) {
+        let http = response as? HTTPURLResponse
+        var lines = [
+            "Time: \(debugTimestamp())",
+            "Reason: \(reason)",
+            "Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "unknown")",
+            "Attempt: \(attempt)"
+        ]
+        if let statusCode = http?.statusCode {
+            lines.append("Status: \(statusCode)")
+        }
+        lines.append("Result: \(result)")
+        if result == "success" {
+            if let detail, !detail.isEmpty {
+                lines.append("Detail: \(detail)")
+            }
+        } else {
+            lines.append("Debug Info:")
+            lines.append("  Request Headers:")
+            for (key, value) in sanitizedHeaders(from: request).sorted(by: { $0.key < $1.key }) {
+                lines.append("    \(key): \(value)")
+            }
+            if let response {
+                lines.append("  Response Type: \(type(of: response))")
+                lines.append("  Response URL: \(response.url?.absoluteString ?? "nil")")
+            } else {
+                lines.append("  Response: nil")
+            }
+            if let http {
+                lines.append("  Response Headers:")
+                for (key, value) in http.allHeaderFields.sorted(by: { "\($0.key)" < "\($1.key)" }) {
+                    lines.append("    \(key): \(value)")
+                }
+            }
+            if let error {
+                let nsError = error as NSError
+                lines.append("  Error Domain: \(nsError.domain)")
+                lines.append("  Error Code: \(nsError.code)")
+                lines.append("  Error Description: \(nsError.localizedDescription)")
+                if !nsError.userInfo.isEmpty {
+                    lines.append("  Error User Info:")
+                    for (key, value) in nsError.userInfo.sorted(by: { $0.key < $1.key }) {
+                        lines.append("    \(key): \(value)")
+                    }
+                }
+            }
+            if let data {
+                lines.append("  Response Body Bytes: \(data.count)")
+                lines.append("  Response Body:")
+                lines.append(String(data: data, encoding: .utf8) ?? data.map { String(format: "%02x", $0) }.joined())
+            } else {
+                lines.append("  Response Body: nil")
+            }
+            if let detail, !detail.isEmpty {
+                lines.append("  Detail: \(detail)")
+            }
+        }
+        UsageAPIDebugLog.record(lines)
+    }
+
+    private static func sanitizedHeaders(from request: URLRequest) -> [String: String] {
+        var headers: [String: String] = [:]
+        for (key, value) in request.allHTTPHeaderFields ?? [:] {
+            if key.caseInsensitiveCompare("Authorization") == .orderedSame {
+                headers[key] = "<redacted>"
+            } else {
+                headers[key] = value
+            }
+        }
+        return headers
+    }
+
+    private static func debugTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mma, MMM d"
+        return formatter.string(from: Date())
+    }
+
+    private static func debugBucket(_ bucket: UsageResponse.Bucket?) -> String {
+        guard let bucket else { return "nil" }
+        let reset = bucket.resetsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+        return "{ utilization: \(bucket.utilization), resetsAt: \(reset) }"
     }
 
     private static func parse(_ data: Data) throws -> UsageResponse {

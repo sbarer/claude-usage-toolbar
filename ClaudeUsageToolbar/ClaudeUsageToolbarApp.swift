@@ -11,12 +11,27 @@ struct ClaudeUsageToolbarApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let statusItemHorizontalPadding: CGFloat = 12
+    private let statusItemImageWidth: CGFloat = 18
+    private let statusItemImageTitleSpacing: CGFloat = 4
+    private let minimumStatusItemTitleWidth = NSAttributedString(
+        string: "...",
+        attributes: [.font: NSFont.menuBarFont(ofSize: 0)]
+    ).size().width
     private var statusItem: NSStatusItem!
     private var monitor: UsageMonitor!
     private var lifecycle: ClaudeAppLifecycle!
     private var activityWatcher: ActivityWatcher!
     private var wakeObserver: NSObjectProtocol?
     private var lastState: UsageState?
+    private lazy var claudeLogoImage: NSImage? = {
+        guard let image = NSImage(named: "claude-logo")?.copy() as? NSImage else {
+            return nil
+        }
+        image.size = NSSize(width: statusItemImageWidth, height: statusItemImageWidth)
+        image.isTemplate = false
+        return image
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LaunchAgentInstaller.installIfNeeded()
@@ -40,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.render(state)
         }
         renderPlaceholder()
-        monitor.start()
+        requestKeychainAccessThenStartMonitoring()
 
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
@@ -73,6 +88,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
+
+        let statusMenuItem = NSMenuItem(
+            title: "Status: \((lastState ?? UsageState(kind: .loading)).statusDisplayName)",
+            action: #selector(openUsageDebugLog),
+            keyEquivalent: ""
+        )
+        statusMenuItem.target = self
+        menu.addItem(statusMenuItem)
+        menu.addItem(.separator())
 
         if case .ok(let session, let weekly, let weeklyResetsAt, let sessionResetsAt) = lastState?.kind {
             let sessionItem = NSMenuItem(title: "Session: \(session)%", action: nil, keyEquivalent: "")
@@ -127,19 +151,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
+    @objc private func openUsageDebugLog() {
+        NSWorkspace.shared.open(UsageAPIDebugLog.ensureFileExists())
+    }
+
+    private func requestKeychainAccessThenStartMonitoring() {
+        KeychainTokenStore.requestAccess { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                self.monitor.start()
+            case .failure(KeychainTokenStore.Error.notFound):
+                self.render(UsageState(kind: .unauthenticated))
+            case .failure(let error):
+                self.render(UsageState(kind: .error("keychain: \(error)")))
+            }
+        }
+    }
+
     private func renderPlaceholder() {
-        guard let button = statusItem.button else { return }
-        let attr = NSAttributedString(
-            string: "…",
-            attributes: [.font: NSFont.menuBarFont(ofSize: 0)]
-        )
-        button.attributedTitle = attr
+        render(UsageState(kind: .loading))
     }
 
     private func render(_ state: UsageState) {
         guard let button = statusItem.button else { return }
         lastState = state
-        button.attributedTitle = MenuBarLabel.attributedTitle(for: state)
         button.toolTip = state.tooltip
         button.alignment = .center
         button.layer?.cornerRadius = 10
@@ -150,7 +186,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             button.layer?.backgroundColor = nil
         }
-        button.sizeToFit()
+
+        if MenuBarLabel.usesClaudeLogo(for: state) {
+            let title = MenuBarLabel.logoCountTitle(for: state)
+            button.image = claudeLogoImage
+            button.imagePosition = title.length > 0 ? .imageLeft : .imageOnly
+            button.attributedTitle = title
+            let titleWidth = title.length > 0 ? statusItemImageTitleSpacing + title.size().width : 0
+            updateStatusItemLength(forWidth: statusItemImageWidth + titleWidth)
+        } else {
+            let title = MenuBarLabel.attributedTitle(for: state)
+            button.image = nil
+            button.imagePosition = .noImage
+            button.attributedTitle = title
+            updateStatusItemLength(for: title)
+        }
+    }
+
+    private func updateStatusItemLength(for title: NSAttributedString) {
+        let titleWidth = max(title.size().width, minimumStatusItemTitleWidth)
+        updateStatusItemLength(forWidth: titleWidth)
+    }
+
+    private func updateStatusItemLength(forWidth contentWidth: CGFloat) {
+        let width = max(contentWidth, minimumStatusItemTitleWidth)
+        statusItem.length = ceil(width + statusItemHorizontalPadding)
     }
 }
 

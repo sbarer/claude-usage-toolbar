@@ -8,22 +8,38 @@ enum MenuBarLabel {
         case .loading:
             return plain("…")
         case .unauthenticated:
-            return plain("!")
+            return hotPill("!")
         case .error:
-            return plain("⚠")
+            return hotPill("⚠")
         case .ok(let session, _, _, let sessionResetsAt):
             if session >= 100, let resetsAt = sessionResetsAt {
                 let remaining = resetsAt.timeIntervalSinceNow
                 if remaining > 0 {
-                    return hotPill(" \(formatCountdown(remaining)) ")
+                    return hotPill(formatCountdown(remaining))
                 }
             }
             if session >= hotThreshold {
-                return hotPill(" \(session)% ")
+                return hotPill("\(session)%")
             } else {
-                return plain(" \(session)% ")
+                return plain("\(session)%")
             }
         }
+    }
+
+    static func usesClaudeLogo(for state: UsageState) -> Bool {
+        switch state.kind {
+        case .loading, .unauthenticated, .error:
+            return true
+        case .ok:
+            return false
+        }
+    }
+
+    static func logoCountTitle(for state: UsageState) -> NSAttributedString {
+        guard state.apiTriesSinceLastSuccess > 0 else {
+            return plain("")
+        }
+        return plain("\(state.apiTriesSinceLastSuccess)")
     }
 
     private static func formatCountdown(_ seconds: TimeInterval) -> String {

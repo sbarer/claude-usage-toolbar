@@ -9,11 +9,37 @@ struct UsageState {
         case error(String)
     }
     let kind: Kind
+    let apiTriesSinceLastSuccess: Int
+
+    init(kind: Kind, apiTriesSinceLastSuccess: Int = 0) {
+        self.kind = kind
+        self.apiTriesSinceLastSuccess = apiTriesSinceLastSuccess
+    }
+
+    var statusName: String {
+        switch kind {
+        case .loading: return "loading"
+        case .ok: return "okay"
+        case .unauthenticated: return "unauth"
+        case .error: return "error"
+        }
+    }
+
+    var statusDisplayName: String {
+        switch kind {
+        case .loading: return "Loading"
+        case .ok: return "Okay"
+        case .unauthenticated: return "Unauth"
+        case .error: return "Error"
+        }
+    }
+
     var tooltip: String {
         switch kind {
         case .loading: return "Loading Claude usage…"
-        case .ok(let s, let w, let wr, _):
+        case .ok(let s, let w, let wr, let sr):
             var t = "Session: \(s)%  •  Weekly: \(w)%"
+            if let sr { t += "\nWeekly resets: \(Self.formatReset(sr))" }
             if let wr { t += "\nWeekly resets: \(Self.formatReset(wr))" }
             return t
         case .unauthenticated: return "Not authenticated — run `claude` to sign in"
@@ -22,8 +48,7 @@ struct UsageState {
     }
     static func formatReset(_ date: Date) -> String {
         let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
+        f.dateFormat = "h:mma, MMM d"
         return f.string(from: date)
     }
 }
@@ -35,6 +60,7 @@ final class UsageMonitor {
     private var timer: DispatchSourceTimer?
     private let queue = DispatchQueue(label: "claude-usage-toolbar.monitor")
     private var lastWeeklyPercent: Int = 0
+    private var apiTriesSinceLastSuccess: Int = 0
     private let weeklyAlertThreshold = 90
 
     init(activityWatcher: ActivityWatcher, onUpdate: @escaping (UsageState) -> Void) {
@@ -59,11 +85,12 @@ final class UsageMonitor {
 
     private func performFetch(reason: String) {
         NSLog("[ClaudeUsageToolbar] poll reason=%@", reason)
-        api.fetch { [weak self] result in
+        api.fetch(reason: reason) { [weak self] result in
             guard let self else { return }
             DispatchQueue.main.async {
                 switch result {
-                case .success(let resp):
+                case .success(let resp, _):
+                    self.apiTriesSinceLastSuccess = 0
                     let session = Int((resp.fiveHour?.utilization ?? 0))
                     let weekly = Int((resp.sevenDay?.utilization ?? 0))
                     NSLog("[ClaudeUsageToolbar] fetched session=%d%% weekly=%d%% sessionResets=%@ weeklyResets=%@",
@@ -79,15 +106,19 @@ final class UsageMonitor {
                     self.onUpdate(state)
                     self.maybeFireWeeklyAlert(weekly: weekly, resetsAt: resp.sevenDay?.resetsAt)
                     self.lastWeeklyPercent = weekly
-                case .unauthenticated:
+                case .unauthenticated(let attempts):
+                    self.apiTriesSinceLastSuccess += attempts
                     NSLog("[ClaudeUsageToolbar] fetched: unauthenticated")
-                    self.onUpdate(UsageState(kind: .unauthenticated))
-                case .rateLimited:
-                    NSLog("[ClaudeUsageToolbar] fetched: rate-limited, keeping last state")
+                    self.onUpdate(UsageState(kind: .unauthenticated, apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess))
+                case .rateLimited(let attempts):
+                    self.apiTriesSinceLastSuccess += attempts
+                    NSLog("[ClaudeUsageToolbar] fetched: rate-limited")
                     NSLog("[ClaudeUsageToolbar] rate-limited result: %@", String(describing: result))
-                case .failure(let err):
+                    self.onUpdate(UsageState(kind: .error("Rate limited"), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess))
+                case .failure(let err, let attempts):
+                    self.apiTriesSinceLastSuccess += attempts
                     NSLog("[ClaudeUsageToolbar] fetch error: %@", err)
-                    self.onUpdate(UsageState(kind: .error(err)))
+                    self.onUpdate(UsageState(kind: .error(err), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess))
                 }
             }
         }
