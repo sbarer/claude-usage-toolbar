@@ -1,20 +1,42 @@
 import Foundation
 
 enum UsageAPIDebugLog {
-    private static let maxEntries = 5
-    private static let queue = DispatchQueue(label: "claude-usage-toolbar.api-debug-log")
-    private static var entries: [String] = []
+    enum RetrySource {
+        case response
+        case fallback
 
-    static var fileURL: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return support
-            .appendingPathComponent("ClaudeUsageToolbar", isDirectory: true)
-            .appendingPathComponent("recent-usage-calls.txt")
+        var description: String {
+            switch self {
+            case .response: "from response"
+            case .fallback: "fallback value"
+            }
+        }
     }
 
-    static func record(_ lines: [String]) {
-        let entry = lines.joined(separator: "\n")
+    private struct Entry {
+        let body: String
+        let retryAfter: TimeInterval?
+        let retrySource: RetrySource?
+    }
+
+    private static let maxEntries = 20
+    private static let queue = DispatchQueue(label: "claude-usage-toolbar.api-debug-log")
+    private static var entries: [Entry] = []
+
+    static var fileURL: URL {
+        URL(fileURLWithPath: "/Users/simonbarer/Files/ComputerScience/Projects/claude-usage-toolbar/ClaudeUsageToolbar/Logs/recent-api-calls")
+    }
+
+    static func record(
+        _ lines: [String],
+        rateLimitRetryAfter: TimeInterval? = nil,
+        rateLimitRetrySource: RetrySource? = nil
+    ) {
+        let entry = Entry(
+            body: lines.joined(separator: "\n"),
+            retryAfter: rateLimitRetryAfter,
+            retrySource: rateLimitRetrySource
+        )
         queue.async {
             entries.append(entry)
             if entries.count > maxEntries {
@@ -40,10 +62,21 @@ enum UsageAPIDebugLog {
         if entries.isEmpty {
             body = "No usage API calls recorded yet.\n"
         } else {
-            body = entries.enumerated()
-                .map { index, entry in "Call \(index + 1)\n\(entry)" }
+            body = entries.reversed().enumerated()
+                .map { index, entry in
+                    var header = "Call \(index + 1)"
+                    if let retryAfter = entry.retryAfter, let retrySource = entry.retrySource {
+                        header += "\nnew retry time: \(formatRetryTime(retryAfter)) (\(retrySource.description))"
+                    }
+                    return "\(header)\n\(entry.body)"
+                }
                 .joined(separator: "\n\n---\n\n") + "\n"
         }
         try? body.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private static func formatRetryTime(_ interval: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(interval.rounded(.up)))
+        return String(format: "%dm%02ds", totalSeconds / 60, totalSeconds % 60)
     }
 }

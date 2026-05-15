@@ -9,10 +9,41 @@ struct UsageState {
     }
     let kind: Kind
     let apiTriesSinceLastSuccess: Int
+    let rateLimitedUntil: Date?
+    let rateLimitIsServerProvided: Bool
+    let lastKnownSessionResetsAt: Date?
+    let lastKnownWeeklyResetsAt: Date?
+    let lastKnownSessionPercent: Int?
+    let lastKnownWeeklyPercent: Int?
 
-    init(kind: Kind, apiTriesSinceLastSuccess: Int = 0) {
+    init(
+        kind: Kind,
+        apiTriesSinceLastSuccess: Int = 0,
+        rateLimitedUntil: Date? = nil,
+        rateLimitIsServerProvided: Bool = false,
+        lastKnownSessionResetsAt: Date? = nil,
+        lastKnownWeeklyResetsAt: Date? = nil,
+        lastKnownSessionPercent: Int? = nil,
+        lastKnownWeeklyPercent: Int? = nil
+    ) {
         self.kind = kind
         self.apiTriesSinceLastSuccess = apiTriesSinceLastSuccess
+        self.rateLimitedUntil = rateLimitedUntil
+        self.rateLimitIsServerProvided = rateLimitIsServerProvided
+        self.lastKnownSessionResetsAt = lastKnownSessionResetsAt
+        self.lastKnownWeeklyResetsAt = lastKnownWeeklyResetsAt
+        self.lastKnownSessionPercent = lastKnownSessionPercent
+        self.lastKnownWeeklyPercent = lastKnownWeeklyPercent
+    }
+
+    var effectiveSessionResetsAt: Date? {
+        if case .ok(_, _, _, let d) = kind { return d ?? lastKnownSessionResetsAt }
+        return lastKnownSessionResetsAt
+    }
+
+    var effectiveWeeklyResetsAt: Date? {
+        if case .ok(_, _, let d, _) = kind { return d ?? lastKnownWeeklyResetsAt }
+        return lastKnownWeeklyResetsAt
     }
 
     var statusName: String {
@@ -50,5 +81,14 @@ struct UsageState {
         let f = DateFormatter()
         f.dateFormat = "h:mma, MMM d"
         return f.string(from: date)
+    }
+
+    var debugDescription: String {
+        switch kind {
+        case .loading: return "loading"
+        case .ok(let s, let w, _, _): return "ok(session=\(s)%, weekly=\(w)%)"
+        case .unauthenticated: return "unauthenticated (tries=\(apiTriesSinceLastSuccess))"
+        case .error(let m): return "error(\(m)) (tries=\(apiTriesSinceLastSuccess))"
+        }
     }
 }

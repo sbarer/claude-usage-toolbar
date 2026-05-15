@@ -1,0 +1,25 @@
+[5:27pm] === App launched ===
+[5:27pm] LaunchAgent: script unchanged
+[5:27pm] LaunchAgent: plist unchanged, no re-bootstrap needed
+[5:27pm] ClaudeAppLifecycle: isClaudeRunning=yes
+[5:27pm] Claude.app is running, continuing startup
+[5:27pm] MenuBar: rendering state=loading
+[5:27pm] Keychain: requestAccess starting
+[5:27pm] Keychain: returning persistent-cache token (length: 108)
+[5:27pm] Keychain: requestAccess succeeded (token length: 108)
+[5:27pm] Keychain access granted — starting monitor
+[5:27pm] UsageMonitor: starting
+[5:27pm] UsageMonitor: primed last-known session=62% weekly=52%
+[5:27pm] UsageMonitor: no valid cached state
+[5:27pm] ActivityWatcher: starting, watching 3 paths
+[5:27pm] ActivityWatcher:   /Users/simonbarer/.claude/projects
+[5:27pm] ActivityWatcher:   /Users/simonbarer/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig
+[5:27pm] ActivityWatcher:   /Users/simonbarer/.vscode/globalStorage/anthropic.claude-code
+[5:27pm] ActivityWatcher: initial lastActivityAt=2026-05-15 07:26:10 +0000 (108s ago)
+[5:27pm] skipping fetch, rate limited for 1695s
+[5:27pm] UsageMonitor: poll interval=60s (last activity 108s ago)
+[5:27pm] MenuBar: rendering state=loading
+[5:28pm] ActivityWatcher: FS event detected, debouncing 5s
+[5:28pm] ActivityWatcher: debounce elapsed, firing onActivity
+[5:28pm] UsageMonitor: poll interval=60s (last activity 5s ago)
+[5:28pm] skipping fetch, rate limited for 1636s

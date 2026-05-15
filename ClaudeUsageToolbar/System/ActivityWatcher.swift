@@ -7,13 +7,25 @@ final class ActivityWatcher {
     private var debounceItem: DispatchWorkItem?
     private var onActivity: (() -> Void)?
 
+    private static let watchedPaths: [String] = [
+        (NSString(string: "~/.claude/projects").expandingTildeInPath),
+        (NSString(string: "~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig").expandingTildeInPath),
+        (NSString(string: "~/.vscode/globalStorage/anthropic.claude-code").expandingTildeInPath)
+    ]
+
     func start(onActivity: @escaping () -> Void) {
         self.onActivity = onActivity
+        NSLog("[ClaudeUsageToolbar] ActivityWatcher: starting, watching %d paths", Self.watchedPaths.count)
+        for path in Self.watchedPaths {
+            NSLog("[ClaudeUsageToolbar] ActivityWatcher:   %@", path)
+        }
         if let mtime = mostRecentJSONLMTime() {
             lastActivityAt = mtime
+            NSLog("[ClaudeUsageToolbar] ActivityWatcher: initial lastActivityAt=%@ (%.0fs ago)", "\(mtime)", -mtime.timeIntervalSinceNow)
+        } else {
+            NSLog("[ClaudeUsageToolbar] ActivityWatcher: no JSONL files found, lastActivityAt=distantPast")
         }
-        let path = (NSString(string: "~/.claude/projects").expandingTildeInPath) as NSString
-        let paths = [path] as CFArray
+        let paths = Self.watchedPaths.map { $0 as NSString } as CFArray
         var ctx = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
         let flags: FSEventStreamCreateFlags = UInt32(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer)
         guard let s = FSEventStreamCreate(
@@ -45,8 +57,10 @@ final class ActivityWatcher {
 
     private func handleEvent() {
         lastActivityAt = Date()
+        NSLog("[ClaudeUsageToolbar] ActivityWatcher: FS event detected, debouncing 5s")
         debounceItem?.cancel()
         let item = DispatchWorkItem { [weak self] in
+            NSLog("[ClaudeUsageToolbar] ActivityWatcher: debounce elapsed, firing onActivity")
             self?.onActivity?()
         }
         debounceItem = item
@@ -54,14 +68,15 @@ final class ActivityWatcher {
     }
 
     private func mostRecentJSONLMTime() -> Date? {
-        let root = (NSString(string: "~/.claude/projects").expandingTildeInPath)
-        let url = URL(fileURLWithPath: root)
-        guard let e = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else { return nil }
         var newest: Date?
-        for case let item as URL in e {
-            guard item.pathExtension == "jsonl" else { continue }
-            if let m = (try? item.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate {
-                if newest == nil || m > newest! { newest = m }
+        for root in Self.watchedPaths {
+            let url = URL(fileURLWithPath: root)
+            guard let e = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else { continue }
+            for case let item as URL in e {
+                guard item.pathExtension == "jsonl" else { continue }
+                if let m = (try? item.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate {
+                    if newest == nil || m > newest! { newest = m }
+                }
             }
         }
         return newest

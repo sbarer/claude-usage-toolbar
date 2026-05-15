@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 
 enum LaunchAgentInstaller {
-    static let label = "com.simonbarer.claude-usage-toolbar"
+    static let label = "com.user.claude-usage-toolbar"
 
     static func installIfNeeded() {
         let fm = FileManager.default
@@ -57,13 +57,21 @@ enum LaunchAgentInstaller {
         let scriptChanged = writeIfChanged(content: scriptBody, to: scriptURL)
         if scriptChanged {
             _ = try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: script written to %@", scriptURL.path)
+        } else {
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: script unchanged")
         }
         let plistChanged = writeIfChanged(content: plistBody, to: plistURL)
 
         if plistChanged {
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: plist changed, re-bootstrapping")
             let uid = getuid()
-            _ = runShell("/bin/launchctl", ["bootout", "gui/\(uid)/\(label)"])
-            _ = runShell("/bin/launchctl", ["bootstrap", "gui/\(uid)", plistURL.path])
+            let bootout = runShell("/bin/launchctl", ["bootout", "gui/\(uid)/\(label)"])
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: bootout exit=%d", bootout)
+            let bootstrap = runShell("/bin/launchctl", ["bootstrap", "gui/\(uid)", plistURL.path])
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: bootstrap exit=%d", bootstrap)
+        } else {
+            NSLog("[ClaudeUsageToolbar] LaunchAgent: plist unchanged, no re-bootstrap needed")
         }
     }
 

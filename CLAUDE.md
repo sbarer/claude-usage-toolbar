@@ -17,12 +17,40 @@ open "$(xcodebuild -project ClaudeUsageToolbar.xcodeproj -scheme ClaudeUsageTool
 
 There are no tests, no linter config, no package manager — just `xcodebuild`. The `project.pbxproj` was hand-written and is intentionally minimal; if Xcode rewrites it, diff carefully before committing.
 
+## Source layout
+
+```
+App/
+  ClaudeUsageToolbarApp.swift   @main entry point (SwiftUI App wrapper only)
+  AppDelegate.swift             lifecycle orchestration
+  ClaudeUsageOpener.swift       opens claude://usage + activates Claude.app
+MenuBar/
+  MenuBarController.swift       owns NSStatusItem, renders UsageState, dispatches clicks
+  MenuBarMenuBuilder.swift      builds the Option+click NSMenu from state + callbacks
+  MenuBarLabel.swift            attributed-string helpers, hotThreshold, hotBackground
+Usage/
+  UsageState.swift              value type passed to the UI layer
+  UsageMonitor.swift            polling loop + adaptive timer + weekly-alert gating
+  UsageAPI.swift                HTTP fetch logic
+  UsageResponse.swift           parsed response model (fiveHour / sevenDay buckets)
+  UsageFetchResult.swift        enum: success / unauthenticated / rateLimited / failure
+  UsageAPIDebugLog.swift        appends recent call records to ~/Application Support/…/recent-usage-calls.txt
+Security/
+  KeychainTokenStore.swift      reads "Claude Code-credentials" from Keychain
+System/
+  ActivityWatcher.swift         FSEventStream on ~/.claude/projects/ → stamps lastActivityAt
+  ClaudeAppLifecycle.swift      watches for Claude.app termination
+  LaunchAgentInstaller.swift    writes + bootstraps ~/Library/LaunchAgents plist
+Alerts/
+  WeeklyAlert.swift             modal alert on rising edge at 90% weekly usage
+```
+
 ## Architecture
 
 A `LSUIElement=YES` menubar-only app with no SwiftUI scenes. The `App` body is `Settings { EmptyView() }` purely to satisfy the protocol; the real entry point is `AppDelegate.applicationDidFinishLaunching`, which:
 1. Installs the launchd agent (`LaunchAgentInstaller`).
 2. Checks if `com.anthropic.claudefordesktop` is running (`ClaudeAppLifecycle`); terminates immediately if not.
-3. Creates `NSStatusItem` directly (not `MenuBarExtra` — we need a click-action, not a popover) and wires it to a fetch loop driven by `UsageMonitor`. Click opens Claude usage; **Option+click** shows a dropdown menu with session/weekly usage, reset countdowns, and Restart/Quit actions.
+3. Creates `MenuBarController` (which owns the `NSStatusItem`) and wires it to a fetch loop driven by `UsageMonitor`. Left-click opens Claude usage via `ClaudeUsageOpener`; **Option+click** calls `MenuBarMenuBuilder.build(...)` and shows the resulting menu — session/weekly usage, reset countdowns, last-fetched time, and Restart/Quit actions.
 4. Subscribes to `NSWorkspace.didWakeNotification` for sleep/wake refresh and `didTerminateApplicationNotification` to self-terminate when Claude.app quits.
 
 ### Data source
@@ -51,7 +79,9 @@ Polls the **undocumented** OAuth endpoint `https://api.anthropic.com/api/oauth/u
 
 ### Menu bar display
 
-`MenuBarLabel` renders the status item text. The button background is colored via its layer (not via `.backgroundColor` on the attributed string — that only covers glyphs, not the full button). At 100% session usage, the label switches from percentage to a countdown (`H:MM`) until the session resets. `isHot` controls whether the layer gets the red background color (`hotBackground`). Don't use `sizeToFit()` removal or `.backgroundColor` on attributed strings — those were tried and don't work correctly with `NSStatusBarButton`.
+`MenuBarController` owns the `NSStatusItem` and calls `MenuBarLabel` helpers to compute attributed strings. The button background is colored via its layer (not via `.backgroundColor` on the attributed string — that only covers glyphs, not the full button). At 100% session usage, the label switches from percentage to a countdown (`H:MM`) until the session resets. `isHot` controls whether the layer gets the red background color (`hotBackground`). Don't use `sizeToFit()` removal or `.backgroundColor` on attributed strings — those were tried and don't work correctly with `NSStatusBarButton`.
+
+`MenuBarMenuBuilder.build(state:lastFetchAt:onRestart:onQuit:onOpenDebugLog:)` constructs the Option+click menu. Menu items that need actions use the private `ClosureMenuItem` helper (holds a closure, acts as its own `@objc` target) to avoid needing `@objc` selectors on `AppDelegate`. `UsageMonitor.lastFetchAt` is stamped at the start of each `performFetch` call and shown as "Last fetched Xs ago / Xm Xs ago / Xh Xm ago" — the 2nd item in the menu, below the status.
 
 ## First-run UX caveats
 

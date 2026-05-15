@@ -45,6 +45,7 @@ final class MenuBarController {
 
     func render(_ state: UsageState) {
         guard let button = statusItem.button else { return }
+        NSLog("[ClaudeUsageToolbar] MenuBar: rendering state=%@", state.debugDescription)
         currentState = state
         button.toolTip = state.tooltip
         button.alignment = .center

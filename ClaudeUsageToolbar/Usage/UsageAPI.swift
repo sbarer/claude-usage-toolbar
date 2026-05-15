@@ -18,27 +18,23 @@ final class UsageAPI {
         do {
             token = try KeychainTokenStore.readAccessToken()
         } catch KeychainTokenStore.Error.notFound {
+            NSLog("[ClaudeUsageToolbar] UsageAPI: token not found in keychain, returning unauthenticated")
             UsageAPIDebugLog.record([
                 "Time: \(Self.debugTimestamp())",
                 "Reason: \(reason)",
                 "Request: not sent",
                 "Result: unauthenticated",
-                "Detail: access token not found in keychain",
-                "Debug Info:",
-                "  Keychain lookup failed before any HTTP request was created.",
-                "  Token value: not logged"
+                "Detail: access token not found in keychain"
             ])
             completion(.unauthenticated(attempts: 0)); return
         } catch {
+            NSLog("[ClaudeUsageToolbar] UsageAPI: keychain error: %@", "\(error)")
             UsageAPIDebugLog.record([
                 "Time: \(Self.debugTimestamp())",
                 "Reason: \(reason)",
                 "Request: not sent",
                 "Result: failure",
-                "Detail: keychain: \(error)",
-                "Debug Info:",
-                "  Keychain error type: \(type(of: error))",
-                "  Token value: not logged"
+                "Detail: keychain: \(error)"
             ])
             completion(.failure("keychain: \(error)", attempts: 0)); return
         }
@@ -69,8 +65,20 @@ final class UsageAPI {
                 completion(.unauthenticated(attempts: attempt)); return
             }
             if http.statusCode == 429 {
-                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "rate limited")
-                completion(.rateLimited(attempts: attempt)); return
+                let retryAfter = http.value(forHTTPHeaderField: "retry-after").flatMap { TimeInterval($0) }
+                let retrySeconds = retryAfter.flatMap { $0 > 0 ? $0 : nil } ?? UsageFetchResult.rateLimitFallbackSeconds
+                let retrySource: UsageAPIDebugLog.RetrySource = retryAfter.map { $0 > 0 } == true ? .response : .fallback
+                Self.recordHTTPRequest(
+                    reason: reason,
+                    request: req,
+                    attempt: attempt,
+                    response: http,
+                    data: data,
+                    result: "rate limited",
+                    rateLimitRetryAfter: retrySeconds,
+                    rateLimitRetrySource: retrySource
+                )
+                completion(.rateLimited(retryAfter: retryAfter, attempts: attempt)); return
             }
             if !(200...299).contains(http.statusCode) {
                 let body = String(data: data, encoding: .utf8) ?? ""
@@ -121,7 +129,9 @@ final class UsageAPI {
         data: Data?,
         error: Error? = nil,
         result: String,
-        detail: String? = nil
+        detail: String? = nil,
+        rateLimitRetryAfter: TimeInterval? = nil,
+        rateLimitRetrySource: UsageAPIDebugLog.RetrySource? = nil
     ) {
         let http = response as? HTTPURLResponse
         var lines = [
@@ -179,7 +189,11 @@ final class UsageAPI {
                 lines.append("  Detail: \(detail)")
             }
         }
-        UsageAPIDebugLog.record(lines)
+        UsageAPIDebugLog.record(
+            lines,
+            rateLimitRetryAfter: rateLimitRetryAfter,
+            rateLimitRetrySource: rateLimitRetrySource
+        )
     }
 
     private static func sanitizedHeaders(from request: URLRequest) -> [String: String] {
