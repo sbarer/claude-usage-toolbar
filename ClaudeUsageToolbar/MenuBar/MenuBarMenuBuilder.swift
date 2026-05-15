@@ -77,8 +77,8 @@ enum MenuBarMenuBuilder {
                 menu.addItem(sessionItem)
                 updaters.append {
                     let s = stateProvider()
-                    if case .ok(let pct, _, _, _) = s?.kind {
-                        sessionItem.title = "Session: \(pct)%"
+                    if case .ok(let d) = s?.kind {
+                        sessionItem.title = "Session: \(d.sessionPercent)%"
                     } else if let pct = s?.lastKnownSessionPercent {
                         sessionItem.title = "Session: \(pct)% (cached)"
                     }
@@ -105,8 +105,8 @@ enum MenuBarMenuBuilder {
                 menu.addItem(weeklyItem)
                 updaters.append {
                     let s = stateProvider()
-                    if case .ok(_, let pct, _, _) = s?.kind {
-                        weeklyItem.title = "Weekly: \(pct)%"
+                    if case .ok(let d) = s?.kind {
+                        weeklyItem.title = "Weekly: \(d.weeklyPercent)%"
                     } else if let pct = s?.lastKnownWeeklyPercent {
                         weeklyItem.title = "Weekly: \(pct)% (cached)"
                     }

@@ -11,35 +11,32 @@ enum KeychainTokenStore {
     private static let service = Strings.Keychain.claudeCodeService
     private static let accessQueue = DispatchQueue(label: "claude-usage-toolbar.keychain-access")
     private static var cachedAccessToken: String?
-    private static var persistentCacheURL: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return support
-            .appendingPathComponent("ClaudeUsageToolbar", isDirectory: true)
-            .appendingPathComponent("access-token.cache")
-    }
 
-    static func requestAccess(completion: @escaping (Result<Void, Swift.Error>) -> Void) {
-        NSLog("[ClaudeUsageToolbar] Keychain: requestAccess starting")
-        accessQueue.async {
-            do {
-                cachedAccessToken = try readAccessTokenWithoutQueue()
-                NSLog("[ClaudeUsageToolbar] Keychain: requestAccess succeeded (token length: %d)", cachedAccessToken?.count ?? 0)
-                DispatchQueue.main.async {
-                    completion(.success(()))
-                }
-            } catch {
-                NSLog("[ClaudeUsageToolbar] Keychain: requestAccess failed: %@", "\(error)")
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+    static func requestAccess() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            NSLog("[ClaudeUsageToolbar] Keychain: requestAccess starting")
+            accessQueue.async {
+                do {
+                    cachedAccessToken = try readAccessTokenWithoutQueue()
+                    NSLog("[ClaudeUsageToolbar] Keychain: requestAccess succeeded (token length: %d)", cachedAccessToken?.count ?? 0)
+                    continuation.resume()
+                } catch {
+                    NSLog("[ClaudeUsageToolbar] Keychain: requestAccess failed: %@", "\(error)")
+                    continuation.resume(throwing: error)
                 }
             }
         }
     }
 
-    static func readAccessToken() throws -> String {
-        try accessQueue.sync {
-            try readAccessTokenWithoutQueue()
+    static func readAccessToken() async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            accessQueue.async {
+                do {
+                    continuation.resume(returning: try readAccessTokenWithoutQueue())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
         }
     }
 
@@ -47,7 +44,6 @@ enum KeychainTokenStore {
         accessQueue.async {
             NSLog("[ClaudeUsageToolbar] Keychain: invalidating cached token (was %@)", cachedAccessToken != nil ? "set" : "already nil")
             cachedAccessToken = nil
-            try? FileManager.default.removeItem(at: persistentCacheURL)
         }
     }
 
@@ -56,39 +52,10 @@ enum KeychainTokenStore {
             NSLog("[ClaudeUsageToolbar] Keychain: returning in-memory cached token (length: %d)", cachedAccessToken.count)
             return cachedAccessToken
         }
-        if let token = try? readAccessTokenFromPersistentCache() {
-            NSLog("[ClaudeUsageToolbar] Keychain: returning persistent-cache token (length: %d)", token.count)
-            cachedAccessToken = token
-            return token
-        }
         NSLog("[ClaudeUsageToolbar] Keychain: cache miss — reading from keychain")
         let token = try readAccessTokenFromKeychain()
         cachedAccessToken = token
-        do {
-            try writeAccessTokenToPersistentCache(token)
-            NSLog("[ClaudeUsageToolbar] Keychain: wrote token to persistent cache")
-        } catch {
-            NSLog("[ClaudeUsageToolbar] Keychain: persistent cache write failed: %@", "\(error)")
-        }
         return token
-    }
-
-    private static func readAccessTokenFromPersistentCache() throws -> String {
-        let data = try Data(contentsOf: persistentCacheURL)
-        guard let token = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-              !token.isEmpty else {
-            throw Error.decode
-        }
-        return token
-    }
-
-    private static func writeAccessTokenToPersistentCache(_ token: String) throws {
-        let url = persistentCacheURL
-        let directory = url.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try token.write(to: url, atomically: true, encoding: .utf8)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 
     private static func readAccessTokenFromKeychain() throws -> String {
@@ -125,7 +92,7 @@ enum KeychainTokenStore {
                         return v
                     }
                     if let claude = obj["claudeAiOauth"] as? [String: Any] {
-                        NSLog("[ClaudeUsageToolbar] Keychain: claudeAiOauth keys: %@", (claude.keys.sorted().joined(separator: ", ")))
+                        NSLog("[ClaudeUsageToolbar] Keychain: claudeAiOauth keys: %@", claude.keys.sorted().joined(separator: ", "))
                         if let v = claude[k] as? String, !v.isEmpty {
                             NSLog("[ClaudeUsageToolbar] Keychain: found token at claudeAiOauth.%@ (length: %d)", k, v.count)
                             return v

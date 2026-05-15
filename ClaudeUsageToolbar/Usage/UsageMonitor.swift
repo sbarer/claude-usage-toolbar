@@ -1,12 +1,12 @@
 import Foundation
 
+@MainActor
 final class UsageMonitor {
     private let api = UsageAPI()
     private let activityWatcher: ActivityWatcher
     private let onUpdate: (UsageState) -> Void
-    private var timer: DispatchSourceTimer?
-    private let queue = DispatchQueue(label: "claude-usage-toolbar.monitor")
-    private var lastWeeklyPercent: Int = 0
+    private var timer: Timer?
+    private var isFetching = false
     private var apiTriesSinceLastSuccess: Int = 0
     private(set) var lastFetchAt: Date?
     private static let cacheMaxAge: TimeInterval = 3600
@@ -32,7 +32,6 @@ final class UsageMonitor {
 
     func start() {
         NSLog("[ClaudeUsageToolbar] UsageMonitor: starting")
-        // Prime last-known values from any previously persisted cache (no age limit).
         let ud = UserDefaults.standard
         if ud.object(forKey: Strings.Defaults.cachedFetchedAt) != nil {
             lastKnownSessionPercent = ud.integer(forKey: Strings.Defaults.cachedSessionPercent)
@@ -40,28 +39,23 @@ final class UsageMonitor {
             lastKnownSessionResetsAt = ud.object(forKey: Strings.Defaults.cachedSessionResetsAt) as? Date
             lastKnownWeeklyResetsAt = ud.object(forKey: Strings.Defaults.cachedWeeklyResetsAt) as? Date
             NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known usages session=%d%% weekly=%d%%", lastKnownSessionPercent ?? -1, lastKnownWeeklyPercent ?? -1)
-
-            if let lastKnownSessionResetsAt, let lastKnownWeeklyResetsAt {
-                NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known resets session=\(DateUtils.formatReset(lastKnownSessionResetsAt)) weekly=\(DateUtils.formatReset(lastKnownWeeklyResetsAt))")
+            if let s = lastKnownSessionResetsAt, let w = lastKnownWeeklyResetsAt {
+                NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known resets session=\(DateUtils.formatReset(s)) weekly=\(DateUtils.formatReset(w))")
             }
         }
         if let cached = loadCachedState() {
             NSLog("[ClaudeUsageToolbar] UsageMonitor: loaded cached state: %@", cached.debugDescription)
-            if case .ok(_, let w, _, _) = cached.kind { lastWeeklyPercent = w }
-            DispatchQueue.main.async { [weak self] in self?.onUpdate(cached) }
+            onUpdate(cached)
         } else {
             NSLog("[ClaudeUsageToolbar] UsageMonitor: no valid cached state")
-            // Cache is expired but we still have last-known values — emit a loading state so
-            // the menu can show them while the fresh fetch is in flight.
             if lastKnownSessionPercent != nil || lastKnownWeeklyPercent != nil {
-                let primed = UsageState(
+                onUpdate(UsageState(
                     kind: .loading,
                     lastKnownSessionResetsAt: lastKnownSessionResetsAt,
                     lastKnownWeeklyResetsAt: lastKnownWeeklyResetsAt,
                     lastKnownSessionPercent: lastKnownSessionPercent,
                     lastKnownWeeklyPercent: lastKnownWeeklyPercent
-                )
-                DispatchQueue.main.async { [weak self] in self?.onUpdate(primed) }
+                ))
             }
         }
         activityWatcher.start { [weak self] in
@@ -73,9 +67,7 @@ final class UsageMonitor {
     }
 
     func fetchNow(reason: String) {
-        queue.async { [weak self] in
-            self?.performFetch(reason: reason)
-        }
+        Task { await performFetch(reason: reason) }
     }
 
     func forceFetch() {
@@ -86,74 +78,100 @@ final class UsageMonitor {
         fetchNow(reason: "force-fetch")
     }
 
-    private func performFetch(reason: String) {
+    private func performFetch(reason: String) async {
+        guard !isFetching else {
+            NSLog("[ClaudeUsageToolbar] skipping fetch, already in flight")
+            return
+        }
         if let until = rateLimitedUntil, Date() < until {
-            let remaining = Int(until.timeIntervalSinceNow)
-            NSLog("[ClaudeUsageToolbar] skipping fetch, rate limited for %ds", remaining)
+            NSLog("[ClaudeUsageToolbar] skipping fetch, rate limited for %ds", Int(until.timeIntervalSinceNow))
             return
         }
         if let until = sessionFullUntil, Date() < until {
-            let remaining = Int(until.timeIntervalSinceNow)
-            NSLog("[ClaudeUsageToolbar] skipping fetch, session full for %ds", remaining)
+            NSLog("[ClaudeUsageToolbar] skipping fetch, session full for %ds", Int(until.timeIntervalSinceNow))
             return
         }
         NSLog("[ClaudeUsageToolbar] poll reason=%@", reason)
-        DispatchQueue.main.async { [weak self] in self?.lastFetchAt = Date() }
-        api.fetch(reason: reason) { [weak self] result in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let resp, _):
-                    self.apiTriesSinceLastSuccess = 0
-                    self.rateLimitedUntil = nil
-                    self.rateLimitIsServerProvided = false
-                    let session = Int((resp.fiveHour?.utilization ?? 0))
-                    if session >= 100, let resetsAt = resp.fiveHour?.resetsAt, resetsAt.timeIntervalSinceNow > 0 {
-                        self.sessionFullUntil = resetsAt
-                    } else {
-                        self.sessionFullUntil = nil
-                    }
-                    self.lastKnownSessionResetsAt = resp.fiveHour?.resetsAt
-                    self.lastKnownWeeklyResetsAt = resp.sevenDay?.resetsAt
-                    let weekly = Int((resp.sevenDay?.utilization ?? 0))
-                    self.lastKnownSessionPercent = session
-                    self.lastKnownWeeklyPercent = weekly
-                    NSLog("[ClaudeUsageToolbar] fetched session=%d%% weekly=%d%% sessionResets=%@ weeklyResets=%@",
-                          session, weekly,
-                          resp.fiveHour?.resetsAt.map { "\($0)" } ?? "nil",
-                          resp.sevenDay?.resetsAt.map { "\($0)" } ?? "nil")
-                    let state = UsageState(kind: .ok(
-                        sessionPercent: session,
-                        weeklyPercent: weekly,
-                        weeklyResetsAt: resp.sevenDay?.resetsAt,
-                        sessionResetsAt: resp.fiveHour?.resetsAt
-                    ))
-                    self.saveCachedState(session: session, weekly: weekly,
-                                        sessionResetsAt: resp.fiveHour?.resetsAt,
-                                        weeklyResetsAt: resp.sevenDay?.resetsAt)
-                    self.onUpdate(state)
-                    self.maybeFireWeeklyAlert(weekly: weekly, resetsAt: resp.sevenDay?.resetsAt)
-                    self.lastWeeklyPercent = weekly
-                case .unauthenticated(let attempts):
-                    self.apiTriesSinceLastSuccess += attempts
-                    NSLog("[ClaudeUsageToolbar] fetched: unauthenticated")
-                    self.onUpdate(UsageState(kind: .unauthenticated, apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess, lastKnownSessionResetsAt: self.lastKnownSessionResetsAt, lastKnownWeeklyResetsAt: self.lastKnownWeeklyResetsAt, lastKnownSessionPercent: self.lastKnownSessionPercent, lastKnownWeeklyPercent: self.lastKnownWeeklyPercent))
-                case .rateLimited(let retryAfter, let attempts):
-                    self.apiTriesSinceLastSuccess += attempts
-                    let isServerProvided = retryAfter.map { $0 > 0 } ?? false
-                    let seconds = retryAfter.flatMap { $0 > 0 ? $0 : nil } ?? UsageFetchResult.rateLimitFallbackSeconds
-                    self.rateLimitedUntil = Date().addingTimeInterval(seconds)
-                    self.rateLimitIsServerProvided = isServerProvided
-                    NSLog("[ClaudeUsageToolbar] fetched: rate-limited, retry-after=%ds%@", Int(seconds), isServerProvided ? "" : " (defaulted)")
-                    self.onUpdate(UsageState(kind: .error(Strings.Status.rateLimited), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess, rateLimitedUntil: self.rateLimitedUntil, rateLimitIsServerProvided: isServerProvided, lastKnownSessionResetsAt: self.lastKnownSessionResetsAt, lastKnownWeeklyResetsAt: self.lastKnownWeeklyResetsAt, lastKnownSessionPercent: self.lastKnownSessionPercent, lastKnownWeeklyPercent: self.lastKnownWeeklyPercent))
-                case .failure(let err, let attempts):
-                    self.apiTriesSinceLastSuccess += attempts
-                    NSLog("[ClaudeUsageToolbar] fetch error: %@", err)
-                    self.onUpdate(UsageState(kind: .error(err), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess, lastKnownSessionResetsAt: self.lastKnownSessionResetsAt, lastKnownWeeklyResetsAt: self.lastKnownWeeklyResetsAt, lastKnownSessionPercent: self.lastKnownSessionPercent, lastKnownWeeklyPercent: self.lastKnownWeeklyPercent))
-                }
+        isFetching = true
+        lastFetchAt = Date()
+        let result = await api.fetch(reason: reason)
+        isFetching = false
+        handleFetchResult(result)
+    }
+
+    private func handleFetchResult(_ result: UsageFetchResult) {
+        switch result {
+        case .success(let resp, _):
+            apiTriesSinceLastSuccess = 0
+            rateLimitedUntil = nil
+            rateLimitIsServerProvided = false
+            let session = Int(resp.fiveHour?.utilization ?? 0)
+            if session >= 100, let resetsAt = resp.fiveHour?.resetsAt, resetsAt.timeIntervalSinceNow > 0 {
+                sessionFullUntil = resetsAt
+            } else {
+                sessionFullUntil = nil
             }
+            lastKnownSessionResetsAt = resp.fiveHour?.resetsAt
+            lastKnownWeeklyResetsAt = resp.sevenDay?.resetsAt
+            let weekly = Int(resp.sevenDay?.utilization ?? 0)
+            NSLog("[ClaudeUsageToolbar] fetched session=%d%% weekly=%d%% sessionResets=%@ weeklyResets=%@",
+                  session, weekly,
+                  resp.fiveHour?.resetsAt.map { "\($0)" } ?? "nil",
+                  resp.sevenDay?.resetsAt.map { "\($0)" } ?? "nil")
+            let state = UsageState(kind: .ok(.init(
+                sessionPercent: session,
+                weeklyPercent: weekly,
+                weeklyResetsAt: resp.sevenDay?.resetsAt,
+                sessionResetsAt: resp.fiveHour?.resetsAt
+            )))
+            saveCachedState(session: session, weekly: weekly,
+                            sessionResetsAt: resp.fiveHour?.resetsAt,
+                            weeklyResetsAt: resp.sevenDay?.resetsAt)
+            onUpdate(state)
+            // Read lastKnownWeeklyPercent (previous value) for edge detection before updating it
+            maybeFireWeeklyAlert(newWeekly: weekly, resetsAt: resp.sevenDay?.resetsAt)
+            lastKnownSessionPercent = session
+            lastKnownWeeklyPercent = weekly
+
+        case .unauthenticated(let attempts):
+            apiTriesSinceLastSuccess += attempts
+            NSLog("[ClaudeUsageToolbar] fetched: unauthenticated")
+            onUpdate(UsageState(kind: .unauthenticated,
+                                apiTriesSinceLastSuccess: apiTriesSinceLastSuccess,
+                                lastKnownSessionResetsAt: lastKnownSessionResetsAt,
+                                lastKnownWeeklyResetsAt: lastKnownWeeklyResetsAt,
+                                lastKnownSessionPercent: lastKnownSessionPercent,
+                                lastKnownWeeklyPercent: lastKnownWeeklyPercent))
+
+        case .rateLimited(let retryAfter, let attempts):
+            apiTriesSinceLastSuccess += attempts
+            let isServerProvided = retryAfter.map { $0 > 0 } ?? false
+            let seconds = retryAfter.flatMap { $0 > 0 ? $0 : nil } ?? UsageFetchResult.rateLimitFallbackSeconds
+            rateLimitedUntil = Date().addingTimeInterval(seconds)
+            rateLimitIsServerProvided = isServerProvided
+            NSLog("[ClaudeUsageToolbar] fetched: rate-limited, retry-after=%ds%@", Int(seconds), isServerProvided ? "" : " (defaulted)")
+            onUpdate(UsageState(kind: .error(Strings.Status.rateLimited),
+                                apiTriesSinceLastSuccess: apiTriesSinceLastSuccess,
+                                rateLimitedUntil: rateLimitedUntil,
+                                rateLimitIsServerProvided: isServerProvided,
+                                lastKnownSessionResetsAt: lastKnownSessionResetsAt,
+                                lastKnownWeeklyResetsAt: lastKnownWeeklyResetsAt,
+                                lastKnownSessionPercent: lastKnownSessionPercent,
+                                lastKnownWeeklyPercent: lastKnownWeeklyPercent))
+
+        case .failure(let err, let attempts):
+            apiTriesSinceLastSuccess += attempts
+            NSLog("[ClaudeUsageToolbar] fetch error: %@", err)
+            onUpdate(UsageState(kind: .error(err),
+                                apiTriesSinceLastSuccess: apiTriesSinceLastSuccess,
+                                lastKnownSessionResetsAt: lastKnownSessionResetsAt,
+                                lastKnownWeeklyResetsAt: lastKnownWeeklyResetsAt,
+                                lastKnownSessionPercent: lastKnownSessionPercent,
+                                lastKnownWeeklyPercent: lastKnownWeeklyPercent))
         }
     }
+
+    // MARK: - Cache
 
     private func loadCachedState() -> UsageState? {
         let ud = UserDefaults.standard
@@ -164,7 +182,8 @@ final class UsageMonitor {
         let sessionResetsAt = ud.object(forKey: Strings.Defaults.cachedSessionResetsAt) as? Date
         let weeklyResetsAt = ud.object(forKey: Strings.Defaults.cachedWeeklyResetsAt) as? Date
         return UsageState(
-            kind: .ok(sessionPercent: session, weeklyPercent: weekly, weeklyResetsAt: weeklyResetsAt, sessionResetsAt: sessionResetsAt),
+            kind: .ok(.init(sessionPercent: session, weeklyPercent: weekly,
+                            weeklyResetsAt: weeklyResetsAt, sessionResetsAt: sessionResetsAt)),
             lastKnownSessionResetsAt: sessionResetsAt,
             lastKnownWeeklyResetsAt: weeklyResetsAt
         )
@@ -181,10 +200,13 @@ final class UsageMonitor {
         ud.set(Date(), forKey: Strings.Defaults.cachedFetchedAt)
     }
 
-    private func maybeFireWeeklyAlert(weekly: Int, resetsAt: Date?) {
-        guard weekly >= weeklyAlertThreshold, lastWeeklyPercent < weeklyAlertThreshold else {
-            if weekly >= weeklyAlertThreshold {
-                NSLog("[ClaudeUsageToolbar] UsageMonitor: weekly alert suppressed (already at/above threshold, lastWeekly=%d)", lastWeeklyPercent)
+    // MARK: - Weekly alert
+
+    private func maybeFireWeeklyAlert(newWeekly: Int, resetsAt: Date?) {
+        let prev = lastKnownWeeklyPercent ?? 0
+        guard newWeekly >= weeklyAlertThreshold, prev < weeklyAlertThreshold else {
+            if newWeekly >= weeklyAlertThreshold {
+                NSLog("[ClaudeUsageToolbar] UsageMonitor: weekly alert suppressed (already at/above threshold, lastWeekly=%d)", prev)
             }
             return
         }
@@ -192,31 +214,29 @@ final class UsageMonitor {
         let resetIso = DateUtils.iso.string(from: resetsAt)
         let already = UserDefaults.standard.string(forKey: Strings.Defaults.lastAlertedWeeklyResetWindow)
         if already == resetIso { return }
-        WeeklyAlert.show(percent: weekly, resetsAt: resetsAt)
+        WeeklyAlert.show(percent: newWeekly, resetsAt: resetsAt)
         UserDefaults.standard.set(resetIso, forKey: Strings.Defaults.lastAlertedWeeklyResetWindow)
     }
 
+    // MARK: - Timer
+
     private func currentInterval() -> TimeInterval {
         let since = Date().timeIntervalSince(activityWatcher.lastActivityAt)
-        let interval: TimeInterval = since < 3600 ? 60 : 330
+        let interval: TimeInterval
+        if since < 60 { interval = 15 }
+        else if since < 3600 { interval = 60 }
+        else { interval = 300 }
         NSLog("[ClaudeUsageToolbar] UsageMonitor: poll interval=%ds (last activity %.0fs ago)", Int(interval), since)
         return interval
     }
 
     private func rescheduleTimer() {
-        timer?.cancel()
-        let t = DispatchSource.makeTimerSource(queue: queue)
+        timer?.invalidate()
         let interval = currentInterval()
-        t.schedule(deadline: .now() + interval, repeating: interval)
-        t.setEventHandler { [weak self] in
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
             guard let self else { return }
-            self.performFetch(reason: "timer-\(Int(interval))s")
-            let next = self.currentInterval()
-            if abs(next - interval) > 0.1 {
-                DispatchQueue.main.async { self.rescheduleTimer() }
-            }
+            Task { await self.performFetch(reason: "timer-\(Int(interval))s") }
+            self.rescheduleTimer()
         }
-        timer = t
-        t.resume()
     }
 }

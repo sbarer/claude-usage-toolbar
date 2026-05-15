@@ -11,17 +11,17 @@ enum MenuBarLabel {
             return hotPill("!")
         case .error:
             return hotPill("⚠")
-        case .ok(let session, _, _, let sessionResetsAt):
-            if session >= 100, let resetsAt = sessionResetsAt {
+        case .ok(let d):
+            if d.sessionPercent >= 100, let resetsAt = d.sessionResetsAt {
                 let remaining = resetsAt.timeIntervalSinceNow
                 if remaining > 0 {
                     return hotPill(DateUtils.formatBarCountdown(remaining))
                 }
             }
-            if session >= hotThreshold {
-                return hotPill("\(session)%")
+            if d.sessionPercent >= hotThreshold {
+                return hotPill("\(d.sessionPercent)%")
             } else {
-                return plain("\(session)%")
+                return plain("\(d.sessionPercent)%")
             }
         }
     }
@@ -43,7 +43,7 @@ enum MenuBarLabel {
     }
 
     static func isHot(_ state: UsageState) -> Bool {
-        if case .ok(let session, _, _, _) = state.kind, session >= hotThreshold {
+        if case .ok(let d) = state.kind, d.sessionPercent >= hotThreshold {
             return true
         }
         return false

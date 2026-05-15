@@ -13,7 +13,8 @@ enum WeeklyAlert {
         alert.addButton(withTitle: Strings.Menu.ok)
         alert.addButton(withTitle: Strings.Menu.openClaude)
 
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) { NSApp.activate() }
+        else { NSApp.activate(ignoringOtherApps: true) }
         let response = alert.runModal()
         if response == .alertSecondButtonReturn {
             ClaudeUsageOpener.open()

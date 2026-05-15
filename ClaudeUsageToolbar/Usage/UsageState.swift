@@ -1,12 +1,20 @@
 import Foundation
 
 struct UsageState {
+    struct OkData {
+        let sessionPercent: Int
+        let weeklyPercent: Int
+        let weeklyResetsAt: Date?
+        let sessionResetsAt: Date?
+    }
+
     enum Kind {
         case loading
-        case ok(sessionPercent: Int, weeklyPercent: Int, weeklyResetsAt: Date?, sessionResetsAt: Date?)
+        case ok(OkData)
         case unauthenticated
         case error(String)
     }
+
     let kind: Kind
     let apiTriesSinceLastSuccess: Int
     let rateLimitedUntil: Date?
@@ -37,12 +45,12 @@ struct UsageState {
     }
 
     var effectiveSessionResetsAt: Date? {
-        if case .ok(_, _, _, let d) = kind { return d ?? lastKnownSessionResetsAt }
+        if case .ok(let d) = kind { return d.sessionResetsAt ?? lastKnownSessionResetsAt }
         return lastKnownSessionResetsAt
     }
 
     var effectiveWeeklyResetsAt: Date? {
-        if case .ok(_, _, let d, _) = kind { return d ?? lastKnownWeeklyResetsAt }
+        if case .ok(let d) = kind { return d.weeklyResetsAt ?? lastKnownWeeklyResetsAt }
         return lastKnownWeeklyResetsAt
     }
 
@@ -67,10 +75,10 @@ struct UsageState {
     var tooltip: String {
         switch kind {
         case .loading: return Strings.Tooltip.loading
-        case .ok(let s, let w, let wr, let sr):
-            var t = "Session: \(s)%  •  Weekly: \(w)%"
-            if let sr { t += "\nSession resets: \(DateUtils.formatReset(sr))" }
-            if let wr { t += "\nWeekly resets: \(DateUtils.formatReset(wr))" }
+        case .ok(let d):
+            var t = "Session: \(d.sessionPercent)%  •  Weekly: \(d.weeklyPercent)%"
+            if let sr = d.sessionResetsAt { t += "\nSession resets: \(DateUtils.formatReset(sr))" }
+            if let wr = d.weeklyResetsAt { t += "\nWeekly resets: \(DateUtils.formatReset(wr))" }
             return t
         case .unauthenticated: return Strings.Tooltip.unauthenticated
         case .error(let m): return "Error: \(m)"
@@ -80,7 +88,7 @@ struct UsageState {
     var debugDescription: String {
         switch kind {
         case .loading: return "loading"
-        case .ok(let s, let w, _, _): return "ok(session=\(s)%, weekly=\(w)%)"
+        case .ok(let d): return "ok(session=\(d.sessionPercent)%, weekly=\(d.weeklyPercent)%)"
         case .unauthenticated: return "unauthenticated (tries=\(apiTriesSinceLastSuccess))"
         case .error(let m): return "error(\(m)) (tries=\(apiTriesSinceLastSuccess))"
         }
