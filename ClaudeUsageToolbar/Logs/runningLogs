@@ -1,71 +1,39 @@
-[5:56pm] === App launched ===
-[5:56pm] LaunchAgent: script unchanged
-[5:56pm] LaunchAgent: plist unchanged, no re-bootstrap needed
-[5:56pm] ClaudeAppLifecycle: isClaudeRunning=yes
-[5:56pm] Claude.app is running, continuing startup
-[5:56pm] MenuBar: rendering state=loading
-[5:56pm] Keychain: requestAccess starting
-[5:56pm] Keychain: cache miss — reading from keychain
-[5:56pm] Keychain: querying service 'Claude Code-credentials'
-[5:56pm] Keychain: raw data length=524, isJSON=yes
-[5:56pm] Keychain: JSON keys: claudeAiOauth, organizationUuid
-[5:56pm] Keychain: claudeAiOauth keys: accessToken, expiresAt, rateLimitTier, refreshToken, scopes, subscriptionType
-[5:56pm] Keychain: found token at claudeAiOauth.accessToken (length: 108)
-[5:56pm] Keychain: wrote token to persistent cache
-[5:56pm] Keychain: requestAccess succeeded (token length: 108)
-[5:56pm] Keychain access granted — starting monitor
-[5:56pm] UsageMonitor: starting
-[5:56pm] UsageMonitor: primed last-known usages session=62% weekly=52%
-[5:56pm] UsageMonitor: primed last-known resets session=9:00pm, May 14 weekly=5:00pm, May 16
-[5:56pm] UsageMonitor: no valid cached state
-[5:56pm] ActivityWatcher: starting, watching 3 paths
-[5:56pm] ActivityWatcher:   /Users/simonbarer/.claude/projects
-[5:56pm] ActivityWatcher:   /Users/simonbarer/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig
-[5:56pm] ActivityWatcher:   /Users/simonbarer/.vscode/globalStorage/anthropic.claude-code
-[5:56pm] ActivityWatcher: initial lastActivityAt=2026-05-15 07:32:52 +0000 (1437s ago)
-[5:56pm] poll reason=startup
-[5:56pm] UsageMonitor: poll interval=60s (last activity 1437s ago)
-[5:56pm] Keychain: returning in-memory cached token (length: 108)
-[5:56pm] MenuBar: rendering state=loading
-[5:56pm] fetched: rate-limited, retry-after=3600s
-[5:56pm] MenuBar: rendering state=error(Rate limited) (tries=1)
-[5:57pm] Force fetch requested
-[5:57pm] UsageMonitor: poll interval=60s (last activity 1450s ago)
-[5:57pm] poll reason=force-fetch
-[5:57pm] Keychain: returning in-memory cached token (length: 108)
-[5:57pm] fetched: rate-limited, retry-after=3587s
-[5:57pm] MenuBar: rendering state=error(Rate limited) (tries=2)
-[5:58pm] skipping fetch, rate limited for 3527s
-[5:58pm] UsageMonitor: poll interval=60s (last activity 1510s ago)
-[5:59pm] skipping fetch, rate limited for 3467s
-[5:59pm] UsageMonitor: poll interval=60s (last activity 1570s ago)
-[6:00pm] skipping fetch, rate limited for 3407s
-[6:00pm] UsageMonitor: poll interval=60s (last activity 1630s ago)
-[6:01pm] skipping fetch, rate limited for 3347s
-[6:01pm] UsageMonitor: poll interval=60s (last activity 1690s ago)
-[6:02pm] skipping fetch, rate limited for 3287s
-[6:02pm] UsageMonitor: poll interval=60s (last activity 1750s ago)
-[6:03pm] skipping fetch, rate limited for 3227s
-[6:03pm] UsageMonitor: poll interval=60s (last activity 1810s ago)
-[6:04pm] skipping fetch, rate limited for 3167s
-[6:04pm] UsageMonitor: poll interval=60s (last activity 1870s ago)
-[6:05pm] skipping fetch, rate limited for 3106s
-[6:05pm] UsageMonitor: poll interval=60s (last activity 1930s ago)
-[6:06pm] skipping fetch, rate limited for 3046s
-[6:06pm] UsageMonitor: poll interval=60s (last activity 1990s ago)
-[6:07pm] skipping fetch, rate limited for 2986s
-[6:07pm] UsageMonitor: poll interval=60s (last activity 2050s ago)
-[6:08pm] skipping fetch, rate limited for 2926s
-[6:08pm] UsageMonitor: poll interval=60s (last activity 2110s ago)
-[6:09pm] skipping fetch, rate limited for 2866s
-[6:09pm] UsageMonitor: poll interval=60s (last activity 2170s ago)
-[6:10pm] skipping fetch, rate limited for 2806s
-[6:10pm] UsageMonitor: poll interval=60s (last activity 2230s ago)
-[6:11pm] skipping fetch, rate limited for 2746s
-[6:11pm] UsageMonitor: poll interval=60s (last activity 2290s ago)
-[6:12pm] skipping fetch, rate limited for 2686s
-[6:12pm] UsageMonitor: poll interval=60s (last activity 2350s ago)
-[6:13pm] skipping fetch, rate limited for 2626s
-[6:13pm] UsageMonitor: poll interval=60s (last activity 2410s ago)
-[6:14pm] skipping fetch, rate limited for 2566s
-[6:14pm] UsageMonitor: poll interval=60s (last activity 2470s ago)
+[7:10pm] === App launched ===
+[7:10pm] LaunchAgent: script unchanged
+[7:10pm] LaunchAgent: plist unchanged, no re-bootstrap needed
+[7:10pm] ClaudeAppLifecycle: isClaudeRunning=yes
+[7:10pm] Claude.app is running, continuing startup
+[7:10pm] MenuBar: rendering state=loading
+[7:10pm] Keychain: requestAccess starting
+[7:10pm] Keychain: cache miss — reading from keychain
+[7:10pm] Keychain: querying service 'Claude Code-credentials'
+[7:10pm] Keychain: raw data length=524, isJSON=yes
+[7:10pm] Keychain: JSON keys: claudeAiOauth, organizationUuid
+[7:10pm] Keychain: claudeAiOauth keys: accessToken, expiresAt, rateLimitTier, refreshToken, scopes, subscriptionType
+[7:10pm] Keychain: found token at claudeAiOauth.accessToken (length: 108)
+[7:10pm] Keychain: wrote token to persistent cache
+[7:10pm] Keychain: requestAccess succeeded (token length: 108)
+[7:10pm] Keychain access granted — starting monitor
+[7:10pm] UsageMonitor: starting
+[7:10pm] UsageMonitor: primed last-known usages session=62% weekly=52%
+[7:10pm] UsageMonitor: primed last-known resets session=9:00pm, May 14 weekly=5:00pm, May 16
+[7:10pm] UsageMonitor: no valid cached state
+[7:10pm] ActivityWatcher: starting, watching 3 paths
+[7:10pm] ActivityWatcher:   /Users/simonbarer/.claude/projects
+[7:10pm] ActivityWatcher:   /Users/simonbarer/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig
+[7:10pm] ActivityWatcher:   /Users/simonbarer/.vscode/globalStorage/anthropic.claude-code
+[7:10pm] ActivityWatcher: initial lastActivityAt=2026-05-15 07:32:52 +0000 (5860s ago)
+[7:10pm] UsageMonitor: poll interval=330s (last activity 5860s ago)
+[7:10pm] UsageMonitor:103 -> Performing Fetch
+[7:10pm] MenuBar: rendering state=loading
+[7:10pm] poll reason=startup
+[7:10pm] Keychain: returning in-memory cached token (length: 108)
+[7:10pm] UsageAPI:53 -> Performing Fetch
+[7:10pm] fetched: rate-limited, retry-after=3600s
+[7:10pm] MenuBar: rendering state=error(Rate limited) (tries=1)
+[7:16pm] UsageMonitor:103 -> Performing Fetch
+[7:16pm] skipping fetch, rate limited for 3269s
+[7:16pm] UsageMonitor: poll interval=330s (last activity 6190s ago)
+[7:21pm] UsageMonitor:103 -> Performing Fetch
+[7:21pm] skipping fetch, rate limited for 2939s
+[7:21pm] UsageMonitor: poll interval=330s (last activity 6520s ago)
