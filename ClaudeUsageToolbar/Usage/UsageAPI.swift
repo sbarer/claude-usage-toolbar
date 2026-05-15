@@ -14,6 +14,19 @@ final class UsageAPI {
     private var session = makeSession()
 
     func fetch(reason: String, completion: @escaping (UsageFetchResult) -> Void) {
+        // Prefer cookie-based fetch: hits claude.ai web API which has a separate (more lenient)
+        // rate-limit bucket from the OAuth endpoint, avoiding the 429s from shared token use.
+        if let cookies = try? ClaudeCookieStore.readCookies(),
+           let cookieURL = URL(string: "https://claude.ai/api/organizations/\(cookies.orgId)/usage") {
+            NSLog("[ClaudeUsageToolbar] UsageAPI: using cookie-based fetch (org: %@)", cookies.orgId)
+            performCookieFetch(cookies: cookies, url: cookieURL, reason: reason, attempt: 1, fallbackToOAuth: true, completion: completion)
+            return
+        }
+        NSLog("[ClaudeUsageToolbar] UsageAPI: cookies unavailable, falling back to OAuth fetch")
+        fetchWithOAuth(reason: reason, completion: completion)
+    }
+
+    private func fetchWithOAuth(reason: String, completion: @escaping (UsageFetchResult) -> Void) {
         let token: String
         do {
             token = try KeychainTokenStore.readAccessToken()
@@ -40,6 +53,73 @@ final class UsageAPI {
         }
 
         performFetch(token: token, reason: reason, attempt: 1, completion: completion)
+    }
+
+    private func performCookieFetch(cookies: ClaudeCookieStore.Cookies, url: URL, reason: String, attempt: Int, fallbackToOAuth: Bool, completion: @escaping (UsageFetchResult) -> Void) {
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue(cookies.cookieString, forHTTPHeaderField: "Cookie")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        // Browser-like User-Agent is required — Cloudflare validates it alongside cf_clearance
+        req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+
+        session.dataTask(with: req) { [weak self] data, response, error in
+            guard let self else { return }
+            if let error {
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: response, data: data, error: error, result: "failure")
+                completion(.failure(error.localizedDescription, attempts: attempt)); return
+            }
+            guard let http = response as? HTTPURLResponse, let data else {
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: response, data: data, result: "failure", detail: "no response")
+                completion(.failure("no response", attempts: attempt)); return
+            }
+            if http.statusCode == 401 || http.statusCode == 403 {
+                NSLog("[ClaudeUsageToolbar] UsageAPI: cookie fetch got %d, %@", http.statusCode, fallbackToOAuth ? "falling back to OAuth" : "returning unauthenticated")
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "unauthenticated (cookie)")
+                if fallbackToOAuth {
+                    self.fetchWithOAuth(reason: reason, completion: completion)
+                } else {
+                    completion(.unauthenticated(attempts: attempt))
+                }
+                return
+            }
+            if http.statusCode == 429 {
+                let retryAfter = http.value(forHTTPHeaderField: "retry-after").flatMap { TimeInterval($0) }
+                let retrySeconds = retryAfter.flatMap { $0 > 0 ? $0 : nil } ?? UsageFetchResult.rateLimitFallbackSeconds
+                let retrySource: UsageAPIDebugLog.RetrySource = retryAfter.map { $0 > 0 } == true ? .response : .fallback
+                Self.recordHTTPRequest(
+                    reason: reason,
+                    request: req,
+                    attempt: attempt,
+                    response: http,
+                    data: data,
+                    result: "rate limited",
+                    rateLimitRetryAfter: retrySeconds,
+                    rateLimitRetrySource: retrySource
+                )
+                completion(.rateLimited(retryAfter: retryAfter, attempts: attempt)); return
+            }
+            if !(200...299).contains(http.statusCode) {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, result: "failure", detail: body)
+                completion(.failure("http \(http.statusCode): \(body.prefix(200))", attempts: attempt)); return
+            }
+            do {
+                let parsed = try Self.parse(data)
+                Self.recordHTTPRequest(
+                    reason: reason,
+                    attempt: attempt,
+                    statusCode: http.statusCode,
+                    result: "success (cookie)",
+                    detail: "fiveHour=\(Self.debugBucket(parsed.fiveHour)), sevenDay=\(Self.debugBucket(parsed.sevenDay))"
+                )
+                completion(.success(parsed, attempts: attempt))
+            } catch {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                Self.recordHTTPRequest(reason: reason, request: req, attempt: attempt, response: http, data: data, error: error, result: "parse failure", detail: body)
+                completion(.failure("parse: \(error)", attempts: attempt))
+            }
+        }.resume()
     }
 
     private func performFetch(token: String, reason: String, attempt: Int, completion: @escaping (UsageFetchResult) -> Void) {
@@ -199,7 +279,8 @@ final class UsageAPI {
     private static func sanitizedHeaders(from request: URLRequest) -> [String: String] {
         var headers: [String: String] = [:]
         for (key, value) in request.allHTTPHeaderFields ?? [:] {
-            if key.caseInsensitiveCompare("Authorization") == .orderedSame {
+            if key.caseInsensitiveCompare("Authorization") == .orderedSame ||
+               key.caseInsensitiveCompare("Cookie") == .orderedSame {
                 headers[key] = "<redacted>"
             } else {
                 headers[key] = value

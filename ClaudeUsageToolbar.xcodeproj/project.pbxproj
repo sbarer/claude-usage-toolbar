@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1A2000000000000000000201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000201 /* Assets.xcassets */; };
+		58776BF62FB7341A004E2139 /* ClaudeCookieStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58776BF52FB7341A004E2139 /* ClaudeCookieStore.swift */; };
 		58EB34852FB6FC1F004A9A6E /* ConsoleLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */; };
 		58EB348F2FB70390004A9A6E /* recent-api-calls in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348D2FB70390004A9A6E /* recent-api-calls */; };
 		58EB34902FB70390004A9A6E /* runningLogs in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348E2FB70390004A9A6E /* runningLogs */; };
@@ -35,6 +36,7 @@
 		1A1000000000000000000001 /* ClaudeUsageToolbar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeUsageToolbar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A1000000000000000000201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A1000000000000000000202 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		58776BF52FB7341A004E2139 /* ClaudeCookieStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCookieStore.swift; sourceTree = "<group>"; };
 		58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleLog.swift; sourceTree = "<group>"; };
 		58EB348D2FB70390004A9A6E /* recent-api-calls */ = {isa = PBXFileReference; lastKnownFileType = text; path = "recent-api-calls"; sourceTree = "<group>"; };
 		58EB348E2FB70390004A9A6E /* runningLogs */ = {isa = PBXFileReference; lastKnownFileType = text; path = runningLogs; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 			children = (
 				58FBBFD92FB49709002504F1 /* KeychainTokenStore.swift */,
 				58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */,
+				58776BF52FB7341A004E2139 /* ClaudeCookieStore.swift */,
 			);
 			path = Security;
 			sourceTree = "<group>";
@@ -261,6 +264,7 @@
 				58FBBFD62FB496DB002504F1 /* UsageAPIDebugLog.swift in Sources */,
 				58FBBFDA2FB49709002504F1 /* KeychainTokenStore.swift in Sources */,
 				58FBBFE02FB4970C002504F1 /* LaunchAgentInstaller.swift in Sources */,
+				58776BF62FB7341A004E2139 /* ClaudeCookieStore.swift in Sources */,
 				58FBBFCC2FB4969C002504F1 /* MenuBarLabel.swift in Sources */,
 				58FBBFDE2FB4970B002504F1 /* ClaudeAppLifecycle.swift in Sources */,
 				58FBBFD02FB496D8002504F1 /* UsageMonitor.swift in Sources */,
