@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1A2000000000000000000201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000201 /* Assets.xcassets */; };
 		58776BF62FB7341A004E2139 /* ClaudeCookieStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58776BF52FB7341A004E2139 /* ClaudeCookieStore.swift */; };
+		58776BF82FB73515004E2139 /* Dates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58776BF72FB73511004E2139 /* Dates.swift */; };
 		58EB34852FB6FC1F004A9A6E /* ConsoleLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */; };
 		58EB348F2FB70390004A9A6E /* recent-api-calls in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348D2FB70390004A9A6E /* recent-api-calls */; };
 		58EB34902FB70390004A9A6E /* runningLogs in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348E2FB70390004A9A6E /* runningLogs */; };
@@ -37,6 +38,7 @@
 		1A1000000000000000000201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A1000000000000000000202 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58776BF52FB7341A004E2139 /* ClaudeCookieStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCookieStore.swift; sourceTree = "<group>"; };
+		58776BF72FB73511004E2139 /* Dates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dates.swift; sourceTree = "<group>"; };
 		58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleLog.swift; sourceTree = "<group>"; };
 		58EB348D2FB70390004A9A6E /* recent-api-calls */ = {isa = PBXFileReference; lastKnownFileType = text; path = "recent-api-calls"; sourceTree = "<group>"; };
 		58EB348E2FB70390004A9A6E /* runningLogs */ = {isa = PBXFileReference; lastKnownFileType = text; path = runningLogs; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 		58EB34952FB704B4004A9A6E /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				58776BF72FB73511004E2139 /* Dates.swift */,
 				58EB34912FB7039B004A9A6E /* Strings.swift */,
 			);
 			path = Utils;
@@ -271,6 +274,7 @@
 				58FBBFC62FB49699002504F1 /* ClaudeUsageOpener.swift in Sources */,
 				58FBBFD42FB496DA002504F1 /* UsageFetchResult.swift in Sources */,
 				58FBBFD22FB496D9002504F1 /* UsageResponse.swift in Sources */,
+				58776BF82FB73515004E2139 /* Dates.swift in Sources */,
 				58FBBFC22FB49670002504F1 /* ClaudeUsageToolbarApp.swift in Sources */,
 				58FBBFE22FB4970D002504F1 /* WeeklyAlert.swift in Sources */,
 			);

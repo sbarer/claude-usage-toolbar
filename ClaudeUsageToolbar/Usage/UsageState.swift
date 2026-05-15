@@ -57,30 +57,24 @@ struct UsageState {
 
     var statusDisplayName: String {
         switch kind {
-        case .loading: return "Loading"
-        case .ok: return "Okay"
-        case .unauthenticated: return "Unauth"
-        case .error: return "Error"
+        case .loading: return Strings.Status.loading
+        case .ok: return Strings.Status.ok
+        case .unauthenticated: return Strings.Status.unauth
+        case .error: return Strings.Status.error
         }
     }
 
     var tooltip: String {
         switch kind {
-        case .loading: return "Loading Claude usage…"
+        case .loading: return Strings.Tooltip.loading
         case .ok(let s, let w, let wr, let sr):
             var t = "Session: \(s)%  •  Weekly: \(w)%"
-            if let sr { t += "\nSession resets: \(Self.formatReset(sr))" }
-            if let wr { t += "\nWeekly resets: \(Self.formatReset(wr))" }
+            if let sr { t += "\nSession resets: \(DateUtils.formatReset(sr))" }
+            if let wr { t += "\nWeekly resets: \(DateUtils.formatReset(wr))" }
             return t
-        case .unauthenticated: return "Not authenticated — run `claude` to sign in"
+        case .unauthenticated: return Strings.Tooltip.unauthenticated
         case .error(let m): return "Error: \(m)"
         }
-    }
-
-    static func formatReset(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "h:mma, MMM d"
-        return f.string(from: date)
     }
 
     var debugDescription: String {

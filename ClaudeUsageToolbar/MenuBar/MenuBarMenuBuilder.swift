@@ -22,7 +22,7 @@ enum MenuBarMenuBuilder {
         updaters.append {
             let s = stateProvider()
             let rl = s?.rateLimitedUntil.map { $0.timeIntervalSinceNow > 0 } ?? false
-            let name = rl ? "Error (RL)" : (s ?? UsageState(kind: .loading)).statusDisplayName
+            let name = rl ? Strings.Status.rateLimitedDisplay : (s ?? UsageState(kind: .loading)).statusDisplayName
             statusItem.title = "Status: \(name)"
         }
 
@@ -52,9 +52,9 @@ enum MenuBarMenuBuilder {
         menu.addItem(lastFetchItem)
         updaters.append {
             if let fetchedAt = lastFetchAtProvider() {
-                lastFetchItem.title = "Last fetch: \(formatAgo(Date().timeIntervalSince(fetchedAt)))"
+                lastFetchItem.title = "Last fetch: \(DateUtils.formatAgo(Date().timeIntervalSince(fetchedAt)))"
             } else {
-                lastFetchItem.title = "Last fetch: never"
+                lastFetchItem.title = Strings.Menu.lastFetchNever
             }
         }
 
@@ -92,7 +92,7 @@ enum MenuBarMenuBuilder {
                         let date = stateProvider()?.effectiveSessionResetsAt ?? resetsAt
                         let r = date.timeIntervalSinceNow
                         item.isHidden = r <= 0
-                        if r > 0 { item.title = "  Reset: \(formatMenuCountdown(r))" }
+                        if r > 0 { item.title = "  Reset: \(DateUtils.formatMenuCountdown(r))" }
                     }
                 }
             }
@@ -120,7 +120,7 @@ enum MenuBarMenuBuilder {
                         let date = stateProvider()?.effectiveWeeklyResetsAt ?? resetsAt
                         let r = date.timeIntervalSinceNow
                         item.isHidden = r <= 0
-                        if r > 0 { item.title = "  Reset: \(formatMenuCountdown(r, false))" }
+                        if r > 0 { item.title = "  Reset: \(DateUtils.formatMenuCountdown(r, showSeconds: false))" }
                     }
                 }
             }
@@ -128,37 +128,15 @@ enum MenuBarMenuBuilder {
             menu.addItem(.separator())
         }
 
-        menu.addItem(ClosureMenuItem(title: "Force Fetch Now", action: onForceFetch))
+        menu.addItem(ClosureMenuItem(title: Strings.Menu.forceFetch, action: onForceFetch))
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(title: "Restart", action: onQuit))
+        menu.addItem(ClosureMenuItem(title: Strings.Menu.restart, action: onQuit))
 
         let delegate = LiveMenuDelegate(updaters: updaters)
         menu.delegate = delegate
         objc_setAssociatedObject(menu, &liveMenuDelegateKey, delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
         return menu
-    }
-
-    private static func formatMenuCountdown(_ seconds: TimeInterval, _ showSeconds: Bool = true) -> String {
-        let total = Int(max(0, seconds))
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 {
-            return showSeconds
-                ? String(format: "%dh%02dm%02ds", h, m, s)
-                : String(format: "%dh%02dm", h, m)
-        }
-        if m > 0 { return showSeconds ? String(format: "%dm%02ds", m, s) : String(format: "%dm", m) }
-        return showSeconds ? "\(s)s" : "0m"
-    }
-
-    private static func formatAgo(_ seconds: TimeInterval) -> String {
-        let s = Int(seconds)
-        if s < 60 { return "\(s)s ago" }
-        let m = s / 60
-        if m < 60 { return "\(m)m \(s % 60)s ago" }
-        return "\(m / 60)h \(m % 60)m ago"
     }
 }
 

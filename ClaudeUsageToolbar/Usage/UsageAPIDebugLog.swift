@@ -66,7 +66,7 @@ enum UsageAPIDebugLog {
                 .map { index, entry in
                     var header = "Call \(index + 1)"
                     if let retryAfter = entry.retryAfter, let retrySource = entry.retrySource {
-                        header += "\nnew retry time: \(formatRetryTime(retryAfter)) (\(retrySource.description))"
+                        header += "\nnew retry time: \(DateUtils.formatRetryInterval(retryAfter)) (\(retrySource.description))"
                     }
                     return "\(header)\n\(entry.body)"
                 }
@@ -75,8 +75,4 @@ enum UsageAPIDebugLog {
         try? body.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    private static func formatRetryTime(_ interval: TimeInterval) -> String {
-        let totalSeconds = max(0, Int(interval.rounded(.up)))
-        return String(format: "%dm%02ds", totalSeconds / 60, totalSeconds % 60)
-    }
 }

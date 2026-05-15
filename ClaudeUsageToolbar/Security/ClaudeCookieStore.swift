@@ -24,8 +24,8 @@ enum ClaudeCookieStore {
         case databaseQueryFailed(String)
     }
 
-    private static let cookieDBPath = NSHomeDirectory() + "/Library/Application Support/Claude/Cookies"
-    private static let keychainService = "Claude Safe Storage"
+    private static let cookieDBPath = Strings.Cookies.dbPath
+    private static let keychainService = Strings.Keychain.safeStorageService
     private static let decryptedPrefixLength = 32
     private static var cachedKey: Data?
 
@@ -133,7 +133,7 @@ enum ClaudeCookieStore {
         }
 
         // PBKDF2-SHA1, 1003 iterations, 16-byte key — Chromium's fixed parameters
-        let salt = Data("saltysalt".utf8)
+        let salt = Data(Strings.Cookies.pbkdfSalt.utf8)
         var derivedKey = Data(count: 16)
         let pbkdfStatus: CCCryptorStatus = derivedKey.withUnsafeMutableBytes { keyBuf in
             salt.withUnsafeBytes { saltBuf in

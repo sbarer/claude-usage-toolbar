@@ -8,7 +8,7 @@ enum KeychainTokenStore {
         case decode
     }
 
-    private static let service = "Claude Code-credentials"
+    private static let service = Strings.Keychain.claudeCodeService
     private static let accessQueue = DispatchQueue(label: "claude-usage-toolbar.keychain-access")
     private static var cachedAccessToken: String?
     private static var persistentCacheURL: URL {

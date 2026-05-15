@@ -9,18 +9,12 @@ final class UsageMonitor {
     private var lastWeeklyPercent: Int = 0
     private var apiTriesSinceLastSuccess: Int = 0
     private(set) var lastFetchAt: Date?
-    private static let rateLimitedUntilKey = "rateLimitedUntil"
-    private static let cachedSessionPercentKey = "cachedSessionPercent"
-    private static let cachedWeeklyPercentKey = "cachedWeeklyPercent"
-    private static let cachedSessionResetsAtKey = "cachedSessionResetsAt"
-    private static let cachedWeeklyResetsAtKey = "cachedWeeklyResetsAt"
-    private static let cachedFetchedAtKey = "cachedFetchedAt"
     private static let cacheMaxAge: TimeInterval = 3600
     private var rateLimitedUntil: Date? {
-        get { UserDefaults.standard.object(forKey: Self.rateLimitedUntilKey) as? Date }
+        get { UserDefaults.standard.object(forKey: Strings.Defaults.rateLimitedUntil) as? Date }
         set {
-            if let date = newValue { UserDefaults.standard.set(date, forKey: Self.rateLimitedUntilKey) }
-            else { UserDefaults.standard.removeObject(forKey: Self.rateLimitedUntilKey) }
+            if let date = newValue { UserDefaults.standard.set(date, forKey: Strings.Defaults.rateLimitedUntil) }
+            else { UserDefaults.standard.removeObject(forKey: Strings.Defaults.rateLimitedUntil) }
         }
     }
     private var sessionFullUntil: Date?
@@ -40,19 +34,15 @@ final class UsageMonitor {
         NSLog("[ClaudeUsageToolbar] UsageMonitor: starting")
         // Prime last-known values from any previously persisted cache (no age limit).
         let ud = UserDefaults.standard
-        if ud.object(forKey: Self.cachedFetchedAtKey) != nil {
-            lastKnownSessionPercent = ud.integer(forKey: Self.cachedSessionPercentKey)
-            lastKnownWeeklyPercent = ud.integer(forKey: Self.cachedWeeklyPercentKey)
-            lastKnownSessionResetsAt = ud.object(forKey: Self.cachedSessionResetsAtKey) as? Date
-            lastKnownWeeklyResetsAt = ud.object(forKey: Self.cachedWeeklyResetsAtKey) as? Date
+        if ud.object(forKey: Strings.Defaults.cachedFetchedAt) != nil {
+            lastKnownSessionPercent = ud.integer(forKey: Strings.Defaults.cachedSessionPercent)
+            lastKnownWeeklyPercent = ud.integer(forKey: Strings.Defaults.cachedWeeklyPercent)
+            lastKnownSessionResetsAt = ud.object(forKey: Strings.Defaults.cachedSessionResetsAt) as? Date
+            lastKnownWeeklyResetsAt = ud.object(forKey: Strings.Defaults.cachedWeeklyResetsAt) as? Date
             NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known usages session=%d%% weekly=%d%%", lastKnownSessionPercent ?? -1, lastKnownWeeklyPercent ?? -1)
 
             if let lastKnownSessionResetsAt, let lastKnownWeeklyResetsAt {
-                let f = DateFormatter()
-                f.dateFormat = "h:mma, MMM d"
-                let timestampSession = f.string(from: lastKnownSessionResetsAt)
-                let timestampWeek = f.string(from: lastKnownWeeklyResetsAt)
-                NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known resets session=\(timestampSession) weekly=\(timestampWeek)")
+                NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known resets session=\(DateUtils.formatReset(lastKnownSessionResetsAt)) weekly=\(DateUtils.formatReset(lastKnownWeeklyResetsAt))")
             }
         }
         if let cached = loadCachedState() {
@@ -87,15 +77,12 @@ final class UsageMonitor {
             self?.performFetch(reason: reason)
         }
     }
-    
+
     func forceFetch() {
         NSLog("[ClaudeUsageToolbar] Force fetch requested")
-        // Clear rate limit and session full restrictions
         rateLimitedUntil = nil
         sessionFullUntil = nil
-        // Reset timer to normal interval
         rescheduleTimer()
-        // Trigger immediate fetch
         fetchNow(reason: "force-fetch")
     }
 
@@ -158,7 +145,7 @@ final class UsageMonitor {
                     self.rateLimitedUntil = Date().addingTimeInterval(seconds)
                     self.rateLimitIsServerProvided = isServerProvided
                     NSLog("[ClaudeUsageToolbar] fetched: rate-limited, retry-after=%ds%@", Int(seconds), isServerProvided ? "" : " (defaulted)")
-                    self.onUpdate(UsageState(kind: .error("Rate limited"), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess, rateLimitedUntil: self.rateLimitedUntil, rateLimitIsServerProvided: isServerProvided, lastKnownSessionResetsAt: self.lastKnownSessionResetsAt, lastKnownWeeklyResetsAt: self.lastKnownWeeklyResetsAt, lastKnownSessionPercent: self.lastKnownSessionPercent, lastKnownWeeklyPercent: self.lastKnownWeeklyPercent))
+                    self.onUpdate(UsageState(kind: .error(Strings.Status.rateLimited), apiTriesSinceLastSuccess: self.apiTriesSinceLastSuccess, rateLimitedUntil: self.rateLimitedUntil, rateLimitIsServerProvided: isServerProvided, lastKnownSessionResetsAt: self.lastKnownSessionResetsAt, lastKnownWeeklyResetsAt: self.lastKnownWeeklyResetsAt, lastKnownSessionPercent: self.lastKnownSessionPercent, lastKnownWeeklyPercent: self.lastKnownWeeklyPercent))
                 case .failure(let err, let attempts):
                     self.apiTriesSinceLastSuccess += attempts
                     NSLog("[ClaudeUsageToolbar] fetch error: %@", err)
@@ -170,12 +157,12 @@ final class UsageMonitor {
 
     private func loadCachedState() -> UsageState? {
         let ud = UserDefaults.standard
-        guard let fetchedAt = ud.object(forKey: Self.cachedFetchedAtKey) as? Date,
+        guard let fetchedAt = ud.object(forKey: Strings.Defaults.cachedFetchedAt) as? Date,
               Date().timeIntervalSince(fetchedAt) < Self.cacheMaxAge else { return nil }
-        let session = ud.integer(forKey: Self.cachedSessionPercentKey)
-        let weekly = ud.integer(forKey: Self.cachedWeeklyPercentKey)
-        let sessionResetsAt = ud.object(forKey: Self.cachedSessionResetsAtKey) as? Date
-        let weeklyResetsAt = ud.object(forKey: Self.cachedWeeklyResetsAtKey) as? Date
+        let session = ud.integer(forKey: Strings.Defaults.cachedSessionPercent)
+        let weekly = ud.integer(forKey: Strings.Defaults.cachedWeeklyPercent)
+        let sessionResetsAt = ud.object(forKey: Strings.Defaults.cachedSessionResetsAt) as? Date
+        let weeklyResetsAt = ud.object(forKey: Strings.Defaults.cachedWeeklyResetsAt) as? Date
         return UsageState(
             kind: .ok(sessionPercent: session, weeklyPercent: weekly, weeklyResetsAt: weeklyResetsAt, sessionResetsAt: sessionResetsAt),
             lastKnownSessionResetsAt: sessionResetsAt,
@@ -185,13 +172,13 @@ final class UsageMonitor {
 
     private func saveCachedState(session: Int, weekly: Int, sessionResetsAt: Date?, weeklyResetsAt: Date?) {
         let ud = UserDefaults.standard
-        ud.set(session, forKey: Self.cachedSessionPercentKey)
-        ud.set(weekly, forKey: Self.cachedWeeklyPercentKey)
-        if let d = sessionResetsAt { ud.set(d, forKey: Self.cachedSessionResetsAtKey) }
-        else { ud.removeObject(forKey: Self.cachedSessionResetsAtKey) }
-        if let d = weeklyResetsAt { ud.set(d, forKey: Self.cachedWeeklyResetsAtKey) }
-        else { ud.removeObject(forKey: Self.cachedWeeklyResetsAtKey) }
-        ud.set(Date(), forKey: Self.cachedFetchedAtKey)
+        ud.set(session, forKey: Strings.Defaults.cachedSessionPercent)
+        ud.set(weekly, forKey: Strings.Defaults.cachedWeeklyPercent)
+        if let d = sessionResetsAt { ud.set(d, forKey: Strings.Defaults.cachedSessionResetsAt) }
+        else { ud.removeObject(forKey: Strings.Defaults.cachedSessionResetsAt) }
+        if let d = weeklyResetsAt { ud.set(d, forKey: Strings.Defaults.cachedWeeklyResetsAt) }
+        else { ud.removeObject(forKey: Strings.Defaults.cachedWeeklyResetsAt) }
+        ud.set(Date(), forKey: Strings.Defaults.cachedFetchedAt)
     }
 
     private func maybeFireWeeklyAlert(weekly: Int, resetsAt: Date?) {
@@ -202,12 +189,11 @@ final class UsageMonitor {
             return
         }
         guard let resetsAt else { return }
-        let key = "lastAlertedWeeklyResetWindow"
-        let resetIso = ISO8601DateFormatter().string(from: resetsAt)
-        let already = UserDefaults.standard.string(forKey: key)
+        let resetIso = DateUtils.iso.string(from: resetsAt)
+        let already = UserDefaults.standard.string(forKey: Strings.Defaults.lastAlertedWeeklyResetWindow)
         if already == resetIso { return }
         WeeklyAlert.show(percent: weekly, resetsAt: resetsAt)
-        UserDefaults.standard.set(resetIso, forKey: key)
+        UserDefaults.standard.set(resetIso, forKey: Strings.Defaults.lastAlertedWeeklyResetWindow)
     }
 
     private func currentInterval() -> TimeInterval {

@@ -1,9 +1,6 @@
 import Foundation
 
 final class UsageAPI {
-    private let url = URL(string: "https://api.anthropic.com/api/oauth/usage")!
-    private let betaHeader = "oauth-2025-04-20"
-
     private static func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 20
@@ -17,7 +14,7 @@ final class UsageAPI {
         // Prefer cookie-based fetch: hits claude.ai web API which has a separate (more lenient)
         // rate-limit bucket from the OAuth endpoint, avoiding the 429s from shared token use.
         if let cookies = try? ClaudeCookieStore.readCookies(),
-           let cookieURL = URL(string: "https://claude.ai/api/organizations/\(cookies.orgId)/usage") {
+           let cookieURL = URL(string: Strings.API.webUsageURL(orgId: cookies.orgId)) {
             NSLog("[ClaudeUsageToolbar] UsageAPI: using cookie-based fetch (org: %@)", cookies.orgId)
             performCookieFetch(cookies: cookies, url: cookieURL, reason: reason, attempt: 1, fallbackToOAuth: true, completion: completion)
             return
@@ -33,7 +30,7 @@ final class UsageAPI {
         } catch KeychainTokenStore.Error.notFound {
             NSLog("[ClaudeUsageToolbar] UsageAPI: token not found in keychain, returning unauthenticated")
             UsageAPIDebugLog.record([
-                "Time: \(Self.debugTimestamp())",
+                "Time: \(DateUtils.formatReset(Date()))",
                 "Reason: \(reason)",
                 "Request: not sent",
                 "Result: unauthenticated",
@@ -43,7 +40,7 @@ final class UsageAPI {
         } catch {
             NSLog("[ClaudeUsageToolbar] UsageAPI: keychain error: %@", "\(error)")
             UsageAPIDebugLog.record([
-                "Time: \(Self.debugTimestamp())",
+                "Time: \(DateUtils.formatReset(Date()))",
                 "Reason: \(reason)",
                 "Request: not sent",
                 "Result: failure",
@@ -123,10 +120,13 @@ final class UsageAPI {
     }
 
     private func performFetch(token: String, reason: String, attempt: Int, completion: @escaping (UsageFetchResult) -> Void) {
+        guard let url = URL(string: Strings.API.oauthURL) else {
+            completion(.failure("invalid URL", attempts: attempt)); return
+        }
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        req.setValue(betaHeader, forHTTPHeaderField: "anthropic-beta")
+        req.setValue(Strings.API.betaHeader, forHTTPHeaderField: "anthropic-beta")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("claude-usage-toolbar/1.0", forHTTPHeaderField: "User-Agent")
 
@@ -186,9 +186,9 @@ final class UsageAPI {
 
     private static func recordHTTPRequest(reason: String, attempt: Int, statusCode: Int? = nil, result: String, detail: String? = nil) {
         var lines = [
-            "Time: \(debugTimestamp())",
+            "Time: \(DateUtils.formatReset(Date()))",
             "Reason: \(reason)",
-            "Request: GET https://api.anthropic.com/api/oauth/usage",
+            "Request: GET \(Strings.API.oauthURL)",
             "Attempt: \(attempt)"
         ]
         if let statusCode {
@@ -215,7 +215,7 @@ final class UsageAPI {
     ) {
         let http = response as? HTTPURLResponse
         var lines = [
-            "Time: \(debugTimestamp())",
+            "Time: \(DateUtils.formatReset(Date()))",
             "Reason: \(reason)",
             "Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "unknown")",
             "Attempt: \(attempt)"
@@ -224,7 +224,7 @@ final class UsageAPI {
             lines.append("Status: \(statusCode)")
         }
         lines.append("Result: \(result)")
-        if result == "success" {
+        if result.hasPrefix("success") {
             if let detail, !detail.isEmpty {
                 lines.append("Detail: \(detail)")
             }
@@ -289,15 +289,9 @@ final class UsageAPI {
         return headers
     }
 
-    private static func debugTimestamp() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mma, MMM d"
-        return formatter.string(from: Date())
-    }
-
     private static func debugBucket(_ bucket: UsageResponse.Bucket?) -> String {
         guard let bucket else { return "nil" }
-        let reset = bucket.resetsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+        let reset = bucket.resetsAt.map { DateUtils.iso.string(from: $0) } ?? "nil"
         return "{ utilization: \(bucket.utilization), resetsAt: \(reset) }"
     }
 
@@ -320,7 +314,7 @@ final class UsageAPI {
                     ?? (dict["percent_used"] as? Double).map { $0 / 100.0 }
                     ?? (dict["used"] as? Double)
                 guard let u = util else { continue }
-                let reset = parseDate(dict["resets_at"]) ?? parseDate(dict["reset_at"]) ?? parseDate(dict["resetsAt"])
+                let reset = DateUtils.parseISO(dict["resets_at"]) ?? DateUtils.parseISO(dict["reset_at"]) ?? DateUtils.parseISO(dict["resetsAt"])
                 return UsageResponse.Bucket(utilization: u, resetsAt: reset)
             }
             if let percent = root[k] as? Double {
@@ -328,17 +322,5 @@ final class UsageAPI {
             }
         }
         return nil
-    }
-
-    private static let iso = ISO8601DateFormatter()
-    private static let isoFractional: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    private static func parseDate(_ any: Any?) -> Date? {
-        guard let s = any as? String else { return nil }
-        return iso.date(from: s) ?? isoFractional.date(from: s)
     }
 }

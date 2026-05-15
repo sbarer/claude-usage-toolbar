@@ -15,7 +15,7 @@ enum MenuBarLabel {
             if session >= 100, let resetsAt = sessionResetsAt {
                 let remaining = resetsAt.timeIntervalSinceNow
                 if remaining > 0 {
-                    return hotPill(formatCountdown(remaining))
+                    return hotPill(DateUtils.formatBarCountdown(remaining))
                 }
             }
             if session >= hotThreshold {
@@ -42,31 +42,11 @@ enum MenuBarLabel {
         return plain("\(state.apiTriesSinceLastSuccess)")
     }
 
-    private static func formatCountdown(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        if h > 0 {
-            return String(format: "%d:%02d", h, m)
-        }
-        return String(format: "0:%02d", m)
-    }
-
     static func isHot(_ state: UsageState) -> Bool {
         if case .ok(let session, _, _, _) = state.kind, session >= hotThreshold {
             return true
         }
         return false
-    }
-
-    static func formatCountdownLong(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        if h > 0 {
-            return String(format: "%d:%02d", h, m)
-        }
-        return String(format: "0:%02d", m)
     }
 
     private static let centeredStyle: NSParagraphStyle = {
