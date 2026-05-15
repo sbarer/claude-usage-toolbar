@@ -62,22 +62,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = MenuBarMenuBuilder.build(
             stateProvider: { [weak self] in self?.menuBarController.currentState },
             lastFetchAtProvider: { [weak self] in self?.monitor.lastFetchAt },
-            onRestart: { [weak self] in self?.restartApp() },
             onQuit: { NSApp.terminate(nil) },
-            onOpenDebugLog: { NSWorkspace.shared.open(UsageAPIDebugLog.ensureFileExists()) },
-            onOpenConsoleLog: { NSWorkspace.shared.open(AppConsoleLog.ensureFileExists()) },
+            onOpenDebugLog: {
+                NSWorkspace.shared.open(UsageAPIDebugLog.ensureFileExists())
+                NSWorkspace.shared.open(AppConsoleLog.ensureFileExists())
+            },
             onForceFetch: { [weak self] in self?.monitor.forceFetch() }
         )
         menuBarController.showMenu(menu)
-    }
-
-    private func restartApp() {
-        let bundlePath = Bundle.main.bundlePath
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        task.arguments = ["-n", bundlePath]
-        try? task.run()
-        NSApp.terminate(nil)
     }
 
     private func requestKeychainAccessThenStartMonitoring() {

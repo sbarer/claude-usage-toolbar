@@ -9,8 +9,9 @@
 /* Begin PBXBuildFile section */
 		1A2000000000000000000201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A1000000000000000000201 /* Assets.xcassets */; };
 		58EB34852FB6FC1F004A9A6E /* ConsoleLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */; };
-		58EB34882FB6FD80004A9A6E /* runningLogs in Resources */ = {isa = PBXBuildFile; fileRef = 58EB34872FB6FD80004A9A6E /* runningLogs */; };
-		58EB348A2FB6FDF8004A9A6E /* recent-api-calls in Resources */ = {isa = PBXBuildFile; fileRef = 58EB34892FB6FDF8004A9A6E /* recent-api-calls */; };
+		58EB348F2FB70390004A9A6E /* recent-api-calls in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348D2FB70390004A9A6E /* recent-api-calls */; };
+		58EB34902FB70390004A9A6E /* runningLogs in Resources */ = {isa = PBXBuildFile; fileRef = 58EB348E2FB70390004A9A6E /* runningLogs */; };
+		58EB34932FB7039D004A9A6E /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58EB34912FB7039B004A9A6E /* Strings.swift */; };
 		58FBBFC22FB49670002504F1 /* ClaudeUsageToolbarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC12FB49670002504F1 /* ClaudeUsageToolbarApp.swift */; };
 		58FBBFC42FB49698002504F1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC32FB49698002504F1 /* AppDelegate.swift */; };
 		58FBBFC62FB49699002504F1 /* ClaudeUsageOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FBBFC52FB49699002504F1 /* ClaudeUsageOpener.swift */; };
@@ -35,8 +36,9 @@
 		1A1000000000000000000201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A1000000000000000000202 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58EB34842FB6FC1F004A9A6E /* ConsoleLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleLog.swift; sourceTree = "<group>"; };
-		58EB34872FB6FD80004A9A6E /* runningLogs */ = {isa = PBXFileReference; lastKnownFileType = text; name = runningLogs; path = ClaudeUsageToolbar/Logs/runningLogs; sourceTree = SOURCE_ROOT; };
-		58EB34892FB6FDF8004A9A6E /* recent-api-calls */ = {isa = PBXFileReference; lastKnownFileType = text; name = "recent-api-calls"; path = "ClaudeUsageToolbar/Logs/recent-api-calls"; sourceTree = SOURCE_ROOT; };
+		58EB348D2FB70390004A9A6E /* recent-api-calls */ = {isa = PBXFileReference; lastKnownFileType = text; path = "recent-api-calls"; sourceTree = "<group>"; };
+		58EB348E2FB70390004A9A6E /* runningLogs */ = {isa = PBXFileReference; lastKnownFileType = text; path = runningLogs; sourceTree = "<group>"; };
+		58EB34912FB7039B004A9A6E /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		58FBBFC12FB49670002504F1 /* ClaudeUsageToolbarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageToolbarApp.swift; sourceTree = "<group>"; };
 		58FBBFC32FB49698002504F1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		58FBBFC52FB49699002504F1 /* ClaudeUsageOpener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageOpener.swift; sourceTree = "<group>"; };
@@ -72,13 +74,14 @@
 			children = (
 				1A4000000000000000000002 /* ClaudeUsageToolbar */,
 				1A4000000000000000000003 /* Products */,
-				58EB34862FB6FCC9004A9A6E /* Logs */,
 			);
 			sourceTree = "<group>";
 		};
 		1A4000000000000000000002 /* ClaudeUsageToolbar */ = {
 			isa = PBXGroup;
 			children = (
+				58EB34942FB70492004A9A6E /* Logs */,
+				58EB34952FB704B4004A9A6E /* Utils */,
 				1A1000000000000000000201 /* Assets.xcassets */,
 				1A1000000000000000000202 /* Info.plist */,
 				58FBBFBB2FB49472002504F1 /* App */,
@@ -99,13 +102,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		58EB34862FB6FCC9004A9A6E /* Logs */ = {
+		58EB34942FB70492004A9A6E /* Logs */ = {
 			isa = PBXGroup;
 			children = (
-				58EB34892FB6FDF8004A9A6E /* recent-api-calls */,
-				58EB34872FB6FD80004A9A6E /* runningLogs */,
+				58EB348D2FB70390004A9A6E /* recent-api-calls */,
+				58EB348E2FB70390004A9A6E /* runningLogs */,
 			);
 			path = Logs;
+			sourceTree = "<group>";
+		};
+		58EB34952FB704B4004A9A6E /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				58EB34912FB7039B004A9A6E /* Strings.swift */,
+			);
+			path = Utils;
 			sourceTree = "<group>";
 		};
 		58FBBFBB2FB49472002504F1 /* App */ = {
@@ -227,8 +238,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A2000000000000000000201 /* Assets.xcassets in Resources */,
-				58EB348A2FB6FDF8004A9A6E /* recent-api-calls in Resources */,
-				58EB34882FB6FD80004A9A6E /* runningLogs in Resources */,
+				58EB348F2FB70390004A9A6E /* recent-api-calls in Resources */,
+				58EB34902FB70390004A9A6E /* runningLogs in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,6 +255,7 @@
 				58EB34852FB6FC1F004A9A6E /* ConsoleLog.swift in Sources */,
 				58FBBFCA2FB4969B002504F1 /* MenuBarMenuBuilder.swift in Sources */,
 				58FBBFC42FB49698002504F1 /* AppDelegate.swift in Sources */,
+				58EB34932FB7039D004A9A6E /* Strings.swift in Sources */,
 				58FBBFDC2FB49709002504F1 /* ActivityWatcher.swift in Sources */,
 				58FBBFD82FB496DC002504F1 /* UsageAPI.swift in Sources */,
 				58FBBFD62FB496DB002504F1 /* UsageAPIDebugLog.swift in Sources */,

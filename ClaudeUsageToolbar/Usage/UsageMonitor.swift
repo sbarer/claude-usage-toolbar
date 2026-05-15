@@ -45,7 +45,15 @@ final class UsageMonitor {
             lastKnownWeeklyPercent = ud.integer(forKey: Self.cachedWeeklyPercentKey)
             lastKnownSessionResetsAt = ud.object(forKey: Self.cachedSessionResetsAtKey) as? Date
             lastKnownWeeklyResetsAt = ud.object(forKey: Self.cachedWeeklyResetsAtKey) as? Date
-            NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known session=%d%% weekly=%d%%", lastKnownSessionPercent ?? -1, lastKnownWeeklyPercent ?? -1)
+            NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known usages session=%d%% weekly=%d%%", lastKnownSessionPercent ?? -1, lastKnownWeeklyPercent ?? -1)
+
+            if let lastKnownSessionResetsAt, let lastKnownWeeklyResetsAt {
+                let f = DateFormatter()
+                f.dateFormat = "h:mma, MMM d"
+                let timestampSession = f.string(from: lastKnownSessionResetsAt)
+                let timestampWeek = f.string(from: lastKnownWeeklyResetsAt)
+                NSLog("[ClaudeUsageToolbar] UsageMonitor: primed last-known resets session=\(timestampSession) weekly=\(timestampWeek)")
+            }
         }
         if let cached = loadCachedState() {
             NSLog("[ClaudeUsageToolbar] UsageMonitor: loaded cached state: %@", cached.debugDescription)

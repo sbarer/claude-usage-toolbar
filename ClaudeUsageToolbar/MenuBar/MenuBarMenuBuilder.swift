@@ -6,10 +6,8 @@ enum MenuBarMenuBuilder {
     static func build(
         stateProvider: @escaping () -> UsageState?,
         lastFetchAtProvider: @escaping () -> Date?,
-        onRestart: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         onOpenDebugLog: @escaping () -> Void,
-        onOpenConsoleLog: @escaping () -> Void,
         onForceFetch: @escaping () -> Void
     ) -> NSMenu {
         let menu = NSMenu()
@@ -132,9 +130,7 @@ enum MenuBarMenuBuilder {
 
         menu.addItem(ClosureMenuItem(title: "Force Fetch Now", action: onForceFetch))
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(title: "Open Console Log", action: onOpenConsoleLog))
-        menu.addItem(ClosureMenuItem(title: "Restart", action: onRestart))
-        menu.addItem(ClosureMenuItem(title: "Quit", action: onQuit))
+        menu.addItem(ClosureMenuItem(title: "Restart", action: onQuit))
 
         let delegate = LiveMenuDelegate(updaters: updaters)
         menu.delegate = delegate
