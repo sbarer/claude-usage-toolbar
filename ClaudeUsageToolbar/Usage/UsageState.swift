@@ -88,7 +88,11 @@ struct UsageState {
     var debugDescription: String {
         switch kind {
         case .loading: return "loading"
-        case .ok(let d): return "ok(session=\(d.sessionPercent)%, weekly=\(d.weeklyPercent)%)"
+        case .ok(let d):
+            if let sr = d.sessionResetsAt, let wr = d.weeklyResetsAt {
+                return "\n\t ok([session=\(d.sessionPercent)%, reset=\(DateUtils.formatReset(sr))], [weekly=\(d.weeklyPercent)%, reset=\(DateUtils.formatReset(wr))]"
+            }
+            return "\n\tok(session=\(d.sessionPercent)%, weekly=\(d.weeklyPercent)%)"
         case .unauthenticated: return "unauthenticated (tries=\(apiTriesSinceLastSuccess))"
         case .error(let m): return "error(\(m)) (tries=\(apiTriesSinceLastSuccess))"
         }
