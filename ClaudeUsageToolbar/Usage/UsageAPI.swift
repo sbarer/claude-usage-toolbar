@@ -13,10 +13,10 @@ final class UsageAPI {
     func fetch(reason: String) async -> UsageFetchResult {
         if let cookies = try? ClaudeCookieStore.readCookies(),
            let cookieURL = URL(string: Strings.API.webUsageURL(orgId: cookies.orgId)) {
-            NSLog("[ClaudeUsageToolbar] UsageAPI: using cookie-based fetch (org: %@)", cookies.orgId)
+            NSLog("UsageAPI: using cookie-based fetch (org: %@)", cookies.orgId)
             return await performCookieFetch(cookies: cookies, url: cookieURL, reason: reason, attempt: 1, fallbackToOAuth: true)
         }
-        NSLog("[ClaudeUsageToolbar] UsageAPI: cookies unavailable, falling back to OAuth fetch")
+        NSLog("UsageAPI: cookies unavailable, falling back to OAuth fetch")
         return await fetchWithOAuth(reason: reason)
     }
 
@@ -27,7 +27,7 @@ final class UsageAPI {
         do {
             token = try await KeychainTokenStore.readAccessToken()
         } catch KeychainTokenStore.Error.notFound {
-            NSLog("[ClaudeUsageToolbar] UsageAPI: token not found in keychain, returning unauthenticated")
+            NSLog("UsageAPI: token not found in keychain, returning unauthenticated")
             UsageAPIDebugLog.record([
                 "Time: \(DateUtils.formatReset(Date()))",
                 "Reason: \(reason)",
@@ -37,7 +37,7 @@ final class UsageAPI {
             ])
             return .unauthenticated(attempts: 0)
         } catch {
-            NSLog("[ClaudeUsageToolbar] UsageAPI: keychain error: %@", "\(error)")
+            NSLog("UsageAPI: keychain error: %@", "\(error)")
             UsageAPIDebugLog.record([
                 "Time: \(DateUtils.formatReset(Date()))",
                 "Reason: \(reason)",
@@ -111,7 +111,7 @@ final class UsageAPI {
 
         switch Self.classify(data: data, response: response) {
         case .unauthenticated:
-            NSLog("[ClaudeUsageToolbar] UsageAPI: cookie fetch got 401/403, %@", fallbackToOAuth ? "falling back to OAuth" : "returning unauthenticated")
+            NSLog("UsageAPI: cookie fetch got 401/403, %@", fallbackToOAuth ? "falling back to OAuth" : "returning unauthenticated")
             Self.recordRequest(reason: reason, request: req, attempt: attempt, response: response, data: data, result: "unauthenticated (cookie)")
             if fallbackToOAuth { return await fetchWithOAuth(reason: reason) }
             return .unauthenticated(attempts: attempt)

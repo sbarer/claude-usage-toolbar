@@ -22,7 +22,7 @@ final class ClaudeAppLifecycle {
             guard let self else { return }
             let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             if app?.bundleIdentifier == self.bundleId {
-                NSLog("[ClaudeUsageToolbar] Claude.app terminated — self-terminating")
+                NSLog("Claude.app terminated — self-terminating")
                 self.onClaudeQuit()
             }
         }
@@ -30,7 +30,7 @@ final class ClaudeAppLifecycle {
 
     var isClaudeRunning: Bool {
         let running = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
-        NSLog("[ClaudeUsageToolbar] ClaudeAppLifecycle: isClaudeRunning=%@", running ? "yes" : "no")
+        NSLog("ClaudeAppLifecycle: isClaudeRunning=%@", running ? "yes" : "no")
         return running
     }
 

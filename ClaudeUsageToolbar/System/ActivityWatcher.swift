@@ -15,15 +15,15 @@ final class ActivityWatcher {
 
     func start(onActivity: @escaping () -> Void) {
         self.onActivity = onActivity
-        NSLog("[ClaudeUsageToolbar] ActivityWatcher: starting, watching %d paths", Self.watchedPaths.count)
+        NSLog("ActivityWatcher: starting, watching %d paths", Self.watchedPaths.count)
         for path in Self.watchedPaths {
-            NSLog("[ClaudeUsageToolbar] ActivityWatcher:   %@", path)
+            NSLog("ActivityWatcher:   %@", path)
         }
         if let mtime = mostRecentJSONLMTime() {
             lastActivityAt = mtime
-            NSLog("[ClaudeUsageToolbar] ActivityWatcher: initial lastActivityAt=%@ (%.0fs ago)", "\(mtime)", -mtime.timeIntervalSinceNow)
+            NSLog("ActivityWatcher: initial lastActivityAt=%@ (%.0fs ago)", "\(mtime)", -mtime.timeIntervalSinceNow)
         } else {
-            NSLog("[ClaudeUsageToolbar] ActivityWatcher: no JSONL files found, lastActivityAt=distantPast")
+            NSLog("ActivityWatcher: no JSONL files found, lastActivityAt=distantPast")
         }
         let paths = Self.watchedPaths.map { $0 as NSString } as CFArray
         var ctx = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
@@ -57,10 +57,10 @@ final class ActivityWatcher {
 
     private func handleEvent() {
         lastActivityAt = Date()
-        NSLog("[ClaudeUsageToolbar] ActivityWatcher: FS event detected, debouncing 5s")
+        NSLog("ActivityWatcher: FS event detected, debouncing 5s")
         debounceItem?.cancel()
         let item = DispatchWorkItem { [weak self] in
-            NSLog("[ClaudeUsageToolbar] ActivityWatcher: debounce elapsed, firing onActivity")
+            NSLog("ActivityWatcher: debounce elapsed, firing onActivity")
             self?.onActivity?()
         }
         debounceItem = item

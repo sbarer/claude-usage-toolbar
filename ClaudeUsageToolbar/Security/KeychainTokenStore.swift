@@ -14,14 +14,14 @@ enum KeychainTokenStore {
 
     static func requestAccess() async throws {
         try await withCheckedThrowingContinuation { continuation in
-            NSLog("[ClaudeUsageToolbar] Keychain: requestAccess starting")
+            NSLog("Keychain: requestAccess starting")
             accessQueue.async {
                 do {
                     cachedAccessToken = try readAccessTokenWithoutQueue()
-                    NSLog("[ClaudeUsageToolbar] Keychain: requestAccess succeeded (token length: %d)", cachedAccessToken?.count ?? 0)
+                    NSLog("Keychain: requestAccess succeeded (token length: %d)", cachedAccessToken?.count ?? 0)
                     continuation.resume()
                 } catch {
-                    NSLog("[ClaudeUsageToolbar] Keychain: requestAccess failed: %@", "\(error)")
+                    NSLog("Keychain: requestAccess failed: %@", "\(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -42,24 +42,24 @@ enum KeychainTokenStore {
 
     static func invalidateCachedAccessToken() {
         accessQueue.async {
-            NSLog("[ClaudeUsageToolbar] Keychain: invalidating cached token (was %@)", cachedAccessToken != nil ? "set" : "already nil")
+            NSLog("Keychain: invalidating cached token (was %@)", cachedAccessToken != nil ? "set" : "already nil")
             cachedAccessToken = nil
         }
     }
 
     private static func readAccessTokenWithoutQueue() throws -> String {
         if let cachedAccessToken {
-            NSLog("[ClaudeUsageToolbar] Keychain: returning in-memory cached token (length: %d)", cachedAccessToken.count)
+            NSLog("Keychain: returning in-memory cached token (length: %d)", cachedAccessToken.count)
             return cachedAccessToken
         }
-        NSLog("[ClaudeUsageToolbar] Keychain: cache miss — reading from keychain")
+        NSLog("Keychain: cache miss — reading from keychain")
         let token = try readAccessTokenFromKeychain()
         cachedAccessToken = token
         return token
     }
 
     private static func readAccessTokenFromKeychain() throws -> String {
-        NSLog("[ClaudeUsageToolbar] Keychain: querying service '%@'", service)
+        NSLog("Keychain: querying service '%@'", service)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -69,43 +69,43 @@ enum KeychainTokenStore {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         if status == errSecItemNotFound {
-            NSLog("[ClaudeUsageToolbar] Keychain: item not found for service '%@'", service)
+            NSLog("Keychain: item not found for service '%@'", service)
             throw Error.notFound
         }
         guard status == errSecSuccess, let data = item as? Data else {
-            NSLog("[ClaudeUsageToolbar] Keychain: query failed, OSStatus=%d", status)
+            NSLog("Keychain: query failed, OSStatus=%d", status)
             throw Error.status(status)
         }
         guard let str = String(data: data, encoding: .utf8) else {
-            NSLog("[ClaudeUsageToolbar] Keychain: data is not valid UTF-8")
+            NSLog("Keychain: data is not valid UTF-8")
             throw Error.decode
         }
         let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
-        NSLog("[ClaudeUsageToolbar] Keychain: raw data length=%d, isJSON=%@", trimmed.count, trimmed.hasPrefix("{") ? "yes" : "no")
+        NSLog("Keychain: raw data length=%d, isJSON=%@", trimmed.count, trimmed.hasPrefix("{") ? "yes" : "no")
         if trimmed.hasPrefix("{") {
             if let obj = try? JSONSerialization.jsonObject(with: Data(trimmed.utf8)) as? [String: Any] {
-                NSLog("[ClaudeUsageToolbar] Keychain: JSON keys: %@", obj.keys.sorted().joined(separator: ", "))
+                NSLog("Keychain: JSON keys: %@", obj.keys.sorted().joined(separator: ", "))
                 let candidates = ["accessToken", "access_token", "token"]
                 for k in candidates {
                     if let v = obj[k] as? String, !v.isEmpty {
-                        NSLog("[ClaudeUsageToolbar] Keychain: found token at root key '%@' (length: %d)", k, v.count)
+                        NSLog("Keychain: found token at root key '%@' (length: %d)", k, v.count)
                         return v
                     }
                     if let claude = obj["claudeAiOauth"] as? [String: Any] {
-                        NSLog("[ClaudeUsageToolbar] Keychain: claudeAiOauth keys: %@", claude.keys.sorted().joined(separator: ", "))
+                        NSLog("Keychain: claudeAiOauth keys: %@", claude.keys.sorted().joined(separator: ", "))
                         if let v = claude[k] as? String, !v.isEmpty {
-                            NSLog("[ClaudeUsageToolbar] Keychain: found token at claudeAiOauth.%@ (length: %d)", k, v.count)
+                            NSLog("Keychain: found token at claudeAiOauth.%@ (length: %d)", k, v.count)
                             return v
                         }
                     }
                 }
-                NSLog("[ClaudeUsageToolbar] Keychain: JSON parsed but no token found in expected keys")
+                NSLog("Keychain: JSON parsed but no token found in expected keys")
             } else {
-                NSLog("[ClaudeUsageToolbar] Keychain: data starts with '{' but JSON parse failed")
+                NSLog("Keychain: data starts with '{' but JSON parse failed")
             }
             throw Error.decode
         }
-        NSLog("[ClaudeUsageToolbar] Keychain: plain-text token (length: %d)", trimmed.count)
+        NSLog("Keychain: plain-text token (length: %d)", trimmed.count)
         return trimmed
     }
 }

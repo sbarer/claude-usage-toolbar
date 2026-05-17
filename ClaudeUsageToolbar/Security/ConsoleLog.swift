@@ -68,8 +68,7 @@ enum AppConsoleLog {
         // Strip NSLog boilerplate: "2026-05-15 17:12:19.693 AppName[pid:thread] "
         if let range = line.range(of: #"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ \S+\[\d+:\d+\] "#, options: .regularExpression) {
             let message = String(line[range.upperBound...])
-            let prefix = "[ClaudeUsageToolbar] "
-            return message.hasPrefix(prefix) ? String(message.dropFirst(prefix.count)) : message
+            return message
         }
         return line
     }

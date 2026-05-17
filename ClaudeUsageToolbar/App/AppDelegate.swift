@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppConsoleLog.initialize()
         _ = UsageAPIDebugLog.ensureFileExists()
-        NSLog("[ClaudeUsageToolbar] === App launched ===")
+        NSLog("=== App launched ===")
 
         LaunchAgentInstaller.installIfNeeded()
 
@@ -20,11 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         guard lifecycle.isClaudeRunning else {
-            NSLog("[ClaudeUsageToolbar] Claude.app not running at launch — terminating")
+            NSLog("Claude.app not running at launch — terminating")
             NSApp.terminate(nil)
             return
         }
-        NSLog("[ClaudeUsageToolbar] Claude.app is running, continuing startup")
+        NSLog("Claude.app is running, continuing startup")
 
         menuBarController = MenuBarController(
             onLeftClick: { ClaudeUsageOpener.open() },
@@ -41,9 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil, queue: .main
-        ) { [weak self] _ in
-            NSLog("[ClaudeUsageToolbar] Wake from sleep — triggering fetch")
-            self?.monitor.fetchNow(reason: "wake-from-sleep")
+        ) { [weak self] _ in 
+            NSLog("Wake from sleep — triggering fetch")
+            // Ensure the call to monitor.fetchNow happens on the MainActor
+            Task { @MainActor in
+                self?.monitor.fetchNow(reason: "wake-from-sleep")
+            }
         }
     }
 
@@ -77,15 +80,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             do {
                 try await KeychainTokenStore.requestAccess()
-                NSLog("[ClaudeUsageToolbar] Keychain access granted — starting monitor")
+                NSLog("Keychain access granted — starting monitor")
                 self.monitor.start()
             } catch KeychainTokenStore.Error.notFound {
-                NSLog("[ClaudeUsageToolbar] Keychain: token not found — showing unauthenticated")
+                NSLog("Keychain: token not found — showing unauthenticated")
                 self.menuBarController.render(UsageState(kind: .unauthenticated))
             } catch {
-                NSLog("[ClaudeUsageToolbar] Keychain: access error — %@", "\(error)")
+                NSLog("Keychain: access error — %@", "\(error)")
                 self.menuBarController.render(UsageState(kind: .error("keychain: \(error)")))
             }
         }
     }
 }
+

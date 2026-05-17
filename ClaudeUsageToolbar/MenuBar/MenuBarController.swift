@@ -31,8 +31,10 @@ final class MenuBarController {
 
     @objc private func handleClick(_ sender: Any?) {
         if NSEvent.modifierFlags.contains(.option) {
+            NSLog("MenuBar: option-clicked")
             onOptionClick()
         } else {
+            NSLog("MenuBar: regular clicked")
             onLeftClick()
         }
     }
@@ -45,7 +47,7 @@ final class MenuBarController {
 
     func render(_ state: UsageState) {
         guard let button = statusItem.button else { return }
-        NSLog("[ClaudeUsageToolbar] MenuBar: rendering state=%@", state.debugDescription)
+        NSLog("MenuBar: rendering state=%@", state.debugDescription)
         currentState = state
         button.toolTip = state.tooltip
         button.alignment = .center

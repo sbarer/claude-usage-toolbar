@@ -17,7 +17,7 @@ enum LaunchAgentInstaller {
             try fm.createDirectory(at: agentsDir, withIntermediateDirectories: true)
             try fm.createDirectory(at: scriptURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         } catch {
-            NSLog("[ClaudeUsageToolbar] LaunchAgent dirs: %@", "\(error)")
+            NSLog("LaunchAgent dirs: %@", "\(error)")
             return
         }
 
@@ -57,21 +57,21 @@ enum LaunchAgentInstaller {
         let scriptChanged = writeIfChanged(content: scriptBody, to: scriptURL)
         if scriptChanged {
             _ = try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: script written to %@", scriptURL.path)
+            NSLog("LaunchAgent: script written to %@", scriptURL.path)
         } else {
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: script unchanged")
+            NSLog("LaunchAgent: script unchanged")
         }
         let plistChanged = writeIfChanged(content: plistBody, to: plistURL)
 
         if plistChanged {
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: plist changed, re-bootstrapping")
+            NSLog("LaunchAgent: plist changed, re-bootstrapping")
             let uid = getuid()
             let bootout = runShell("/bin/launchctl", ["bootout", "gui/\(uid)/\(label)"])
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: bootout exit=%d", bootout)
+            NSLog("LaunchAgent: bootout exit=%d", bootout)
             let bootstrap = runShell("/bin/launchctl", ["bootstrap", "gui/\(uid)", plistURL.path])
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: bootstrap exit=%d", bootstrap)
+            NSLog("LaunchAgent: bootstrap exit=%d", bootstrap)
         } else {
-            NSLog("[ClaudeUsageToolbar] LaunchAgent: plist unchanged, no re-bootstrap needed")
+            NSLog("LaunchAgent: plist unchanged, no re-bootstrap needed")
         }
     }
 
@@ -82,7 +82,7 @@ enum LaunchAgentInstaller {
             try new.write(to: url, options: .atomic)
             return true
         } catch {
-            NSLog("[ClaudeUsageToolbar] write %@: %@", url.path, "\(error)")
+            NSLog("write %@: %@", url.path, "\(error)")
             return false
         }
     }
