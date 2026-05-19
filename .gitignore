@@ -27,6 +27,8 @@ Pods/
 .DS_Store
 .AppleDouble
 .LSOverride
+xcuserdata/
+*.xcuserstate
 
 ## misc
 ClaudeUsageToolbar/Logs/
