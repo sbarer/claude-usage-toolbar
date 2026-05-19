@@ -35,3 +35,5 @@ ClaudeUsageToolbar/Logs/
 Logs/
 *.log
 *.err
+.gemini
+CLAUDE.md
