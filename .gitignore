@@ -30,3 +30,6 @@ Pods/
 
 ## misc
 ClaudeUsageToolbar/Logs/
+Logs/
+*.log
+*.err
