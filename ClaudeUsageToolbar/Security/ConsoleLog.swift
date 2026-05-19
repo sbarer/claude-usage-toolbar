@@ -7,9 +7,7 @@ enum AppConsoleLog {
     private static var pipe: Pipe?
     private static var originalStderr: Int32 = -1
 
-    static var logFileURL: URL {
-        URL(fileURLWithPath: "/Users/simonbarer/Files/ComputerScience/Projects/claude-usage-toolbar/ClaudeUsageToolbar/Logs/runningLogs")
-    }
+    static var logFileURL: URL { LocalPaths.consoleLogFileURL }
 
     static func initialize() {
         queue.async {

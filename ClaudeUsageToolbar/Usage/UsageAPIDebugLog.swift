@@ -23,9 +23,7 @@ enum UsageAPIDebugLog {
     private static let queue = DispatchQueue(label: "claude-usage-toolbar.api-debug-log")
     private static var entries: [Entry] = []
 
-    static var fileURL: URL {
-        URL(fileURLWithPath: "/Users/simonbarer/Files/ComputerScience/Projects/claude-usage-toolbar/ClaudeUsageToolbar/Logs/recent-api-calls")
-    }
+    static var fileURL: URL { LocalPaths.apiDebugLogFileURL }
 
     static func record(
         _ lines: [String],
